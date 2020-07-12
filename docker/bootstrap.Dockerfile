@@ -45,6 +45,9 @@ RUN echo 'unagi ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/unagi
 RUN echo "export UNAGI_PASSWORD='${UNAGI_PASSWORD}'" > /etc/profile.d/99-unagi.sh
 RUN chmod +x /etc/profile.d/99-unagi.sh
 
+# Add bin directory as default commands.
+ADD ./bin /usr/local/bin
+
 # Add unagi command as proxy.
 RUN echo '#!/usr/bin/env bash' > /usr/local/bin/unagi && \
     echo 'exec "$@"' >> /usr/local/bin/unagi && \
@@ -60,8 +63,6 @@ RUN touch /UNAGI_IMAGE
 ENV SHELL=/bin/bash
 RUN echo 'PS1="\e[0;32m\]\u@unagi\[\e[m\]:\e[0;34m\]\w\[\e[m\]# "' \
     >> /root/.bashrc
-
-ADD ./bin /usr/local/bin
 
 ################################################################################
 # Entrypoint
