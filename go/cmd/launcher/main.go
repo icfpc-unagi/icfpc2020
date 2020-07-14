@@ -62,7 +62,7 @@ func main() {
 		"-v", toLinuxPath(rootDir) + ":/work",
 		"-v", "/:/host",
 		"-v",
-		toLinuxPath(getCacheDirectory("")) + ":/root/.cache/icfpc2019",
+		toLinuxPath(getCacheDirectory("")) + ":/root/.cache/icfpc2020",
 		"-v",
 		toLinuxPath(getLocalCacheDirectory(rootDir, "cargo")) +
 			":/usr/local/cargo/registry",

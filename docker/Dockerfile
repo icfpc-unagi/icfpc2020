@@ -115,6 +115,7 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
         -o /usr/local/bin/docker-compose && \
     chmod +x /usr/local/bin/docker-compose && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN docker login -u unagi2020 -p ${UNAGI_PASSWORD}
 
 # Install nodejs.
 # RUN apt-get update && apt-get install -y nodejs-dev npm && \

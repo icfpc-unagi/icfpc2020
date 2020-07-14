@@ -12,9 +12,14 @@ launcher: docker/launcher
 .PHONY: upload-launcher
 upload-launcher: docker/upload-launcher
 
+.PHONY: push-docker
+push-docker: docker/push-docker-latest
+
 .PHONY: docker/%
 docker/%: docker
-	docker run -v $(shell pwd):/work -w /work imos/icfpc2020 make "orig@$*"
+	docker run -v $(shell pwd):/work -w /work \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		imos/icfpc2020 make "orig@$*"
 
 ################################################################################
 # Targets run inside unagi image.
@@ -36,3 +41,7 @@ orig@upload-installer:
 
 .PHONY: orig@orig-upload
 orig@upload: orig@upload-launcher orig@upload-installer
+
+.PHONY: orig@push-docker-%
+orig@push-docker-%:
+	bash script/push-docker-image.sh "$*"
