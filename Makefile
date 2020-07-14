@@ -9,6 +9,9 @@ docker:
 .PHONY: launcher
 launcher: docker/launcher
 
+.PHONY: upload
+upload: push-docker
+
 .PHONY: upload-launcher
 upload-launcher: docker/upload-launcher
 

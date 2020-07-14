@@ -13,6 +13,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/mattn/go-isatty"
 	homedir "github.com/mitchellh/go-homedir"
@@ -175,7 +176,10 @@ func getDockerImage() string {
 		return "imos/icfpc2020:" + *image
 	}
 
-	url := "https://storage.googleapis.com/icfpc-public-data/hash/docker-latest"
+	url := fmt.Sprintf(
+		"https://storage.googleapis.com/icfpc-public-data"+
+			"/hash/docker-latest?refresh=%d",
+		time.Now().Unix())
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(fmt.Sprintf("failed to get image information: %s", err))
