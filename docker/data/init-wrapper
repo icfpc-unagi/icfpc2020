@@ -2,8 +2,8 @@
 
 if [ "${UNAGI_INIT:-}" != '' ]; then
   export XUNAGI_INIT=yes
-  mkdir -p /nfs
-  sshfs guest@52.195.11.214:/home/guest/nfs /nfs \
+  mkdir -p /mnt/nfs
+  sshfs guest@104.198.82.168:/home/guest/nfs /mnt/nfs \
       -o reconnect,uid=0,gid=0,delay_connect
   export XUNAGI_SSHFS=yes
   commit_id="local"

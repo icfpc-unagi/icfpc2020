@@ -12,6 +12,9 @@ launcher: docker/launcher
 .PHONY: upload-launcher
 upload-launcher: docker/upload-launcher
 
+.PHONY: upload-installer
+upload-installer: docker/upload-installer
+
 .PHONY: push-docker
 push-docker: docker/push-docker-latest
 
