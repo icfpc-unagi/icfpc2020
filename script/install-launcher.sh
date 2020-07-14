@@ -34,13 +34,13 @@ echo "Installing unagi launcher to ${bootstrap_directory}/unagi..." >&2
 TMPDIR="${TMPDIR:=/tmp}"
 
 cat <<'EOM' >"$TMPDIR/unagi.sh"
-#!/bin/bash
+#!/usr/bin/env bash
 
 os="$(uname | tr '[A-Z]' '[a-z]')"
 file="$HOME/.cache/icfpc2020/unagi"
 mkdir -p "$(dirname "${file}")"
 curl --silent -z "${file}" -o "${file}.tmp" \
-    "https://storage.googleapis.com/icfpc-public-data/bin/launcher-${os}" &&
+    "https://storage.googleapis.com/icfpc-public-data/bin/launcher-${os}?refresh=$RANDOM$RANDOM$RANDOM$RANDOM" &&
 if [ -f "${file}.tmp" ]; then
     chmod +x "${file}.tmp"
     mv "${file}.tmp" "${file}"
