@@ -175,7 +175,7 @@ func getDockerImage() string {
 		return "imos/icfpc2020:" + *image
 	}
 
-	url := "https://storage.googleapis.com/icfpc-public-data/hash/docker-master"
+	url := "https://storage.googleapis.com/icfpc-public-data/hash/docker-latest"
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(fmt.Sprintf("failed to get image information: %s", err))
