@@ -36,7 +36,7 @@ docker: bootstrap Dockerfile ../build/docker
 #   2. Run `make encrypt@foo` in //docker directory, and then
 #      //docker/data/foo.encrypted should be generated.
 .PHONY: encrypt@%.encrypted
-encrypt@%.encrypted: secret/% bootstrap
+encrypt@%: secret/% bootstrap
 	docker run --rm -i imos/icfpc2020:bootstrap encrypt \
 		< secret/$* > data/$*.encrypted
 

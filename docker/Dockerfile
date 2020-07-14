@@ -117,8 +117,8 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install nodejs.
-RUN apt-get update && apt-get install -y nodejs-dev npm && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y nodejs-dev npm && \
+#     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install sshfs.
 RUN apt-get update && apt-get install -y jq sshfs && \
@@ -131,3 +131,69 @@ ENV PATH=$PATH:/go/bin
 
 # Install dependency for lambda-cli.
 RUN python3 -m pip install werkzeug json-rpc jsonrpc-requests cachetools
+
+################################################################################
+# Configurations
+################################################################################
+
+# Gcloud service account.
+ADD ./service_account.json /root/.config/service_account.json
+ADD ./service_account.p12 /root/.config/service_account.p12
+ADD ./service_account.pem /root/.config/service_account.pem
+RUN gcloud auth activate-service-account \
+    docker@icfpc-primary.iam.gserviceaccount.com \
+    --key-file=/root/.config/service_account.json && \
+    gcloud config set project icfpc-primary && \
+    gcloud config set compute/region asia-northeast1 && \
+    gcloud config set compute/zone asia-northeast1-a
+
+# SSH settings.
+ADD ./id_ed25519 /root/.ssh/id_ed25519
+ADD ./id_ed25519 /root/.ssh/google_compute_engine
+ADD ./id_ed25519 /home/unagi/.ssh/id_ed25519
+ADD ./id_ed25519 /home/unagi/.ssh/google_compute_engine
+RUN chmod 400 \
+    /root/.ssh/id_ed25519 \
+    /root/.ssh/google_compute_engine \
+    /home/unagi/.ssh/id_ed25519 \
+    /home/unagi/.ssh/google_compute_engine
+ADD ./id_ed25519.pub /root/.ssh/authorized_keys
+ADD ./id_ed25519.pub /root/.ssh/id_ed25519.pub
+ADD ./id_ed25519.pub /root/.ssh/google_compute_engine.pub
+ADD ./id_ed25519.pub /home/unagi/.ssh/authorized_keys
+ADD ./id_ed25519.pub /home/unagi/.ssh/id_ed25519.pub
+ADD ./id_ed25519.pub /home/unagi/.ssh/google_compute_engine.pub
+ADD ./ssh_config /root/.ssh/config
+ADD ./ssh_config /home/unagi/.ssh/config
+RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
+RUN ssh-keyscan github.com >> /home/unagi/.ssh/known_hosts
+RUN chown -R unagi:unagi /home/unagi/.ssh
+
+# Git settings.
+RUN git config --global user.email \
+        '5896564+ninetan@users.noreply.github.com' && \
+    git config --global user.name 'Ninetan'
+
+################################################################################
+# Experimental
+################################################################################
+
+ENV CARGO_TARGET_DIR=/work/build
+ENV RUST_BACKTRACE=1
+
+ADD ./init-wrapper /usr/local/bin/init-wrapper
+RUN chmod +x /usr/local/bin/init-wrapper
+
+################################################################################
+# Repository pull
+################################################################################
+
+# Download repository.
+RUN git clone git@github.com:imos/icfpc2020.git /repo
+
+# Fill quick survey.
+RUN echo "last_answer_survey_time: $(date '+%s')" > \
+    /root/.config/gcloud/.last_survey_prompt.yaml
+
+CMD /bin/bash --login
+ENTRYPOINT [ "/usr/local/bin/init-wrapper" ]
