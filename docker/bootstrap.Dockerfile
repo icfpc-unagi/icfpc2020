@@ -20,6 +20,10 @@ ENV UNAGI_PASSWORD=$UNAGI_PASSWORD
 # Use GCP apt.
 RUN sed -i.bak -e "s%http://archive.ubuntu.com/ubuntu/%http://asia-northeast1.gce.archive.ubuntu.com/ubuntu/%g" /etc/apt/sources.list
 
+# Stop compression: https://bugs.launchpad.net/ubuntu/+source/command-not-found/+bug/1876034
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    rm /etc/apt/apt.conf.d/docker-gzip-indexes
+
 # Unminimize the image.
 RUN apt-get update -q && yes | unminimize
 
