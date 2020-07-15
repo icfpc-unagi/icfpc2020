@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  mysql:
+    image: imos/icfpc2020:nginx
+    ports:
+      - 443:443

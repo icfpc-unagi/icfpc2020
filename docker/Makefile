@@ -40,6 +40,11 @@ phpmyadmin: data phpmyadmin.Dockerfile
 		--build-arg UNAGI_PASSWORD=$${UNAGI_PASSWORD} \
 		-t imos/icfpc2020:phpmyadmin .
 
+.PHOY: nginx
+nginx: data nginx/Dockerfile
+	docker build --file nginx/Dockerfile \
+		-t imos/icfpc2020:nginx ./nginx
+
 ###############################################################################
 # Utility targets
 ###############################################################################
