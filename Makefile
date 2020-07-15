@@ -10,9 +10,13 @@ deploy-dashboard:
 bootstrap:
 	cd docker && make bootstrap
 
+.PHONY: unagi
+unagi:
+	cd docker && make docker
+
 .PHONY: docker
 docker:
-	cd docker && make docker
+	docker build -t imos/icfpc2020:submission .
 
 .PHONY: launcher
 launcher: docker/launcher
