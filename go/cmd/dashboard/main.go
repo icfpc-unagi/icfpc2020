@@ -8,9 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/appengine"
 
-	_ "github.com/imos/icfpc2019/go/dashboard/api"
-	_ "github.com/imos/icfpc2019/go/dashboard/handler"
-	"github.com/imos/icfpc2019/go/util/db"
+	"github.com/imos/icfpc2020/go/util/db"
 )
 
 type Response struct {

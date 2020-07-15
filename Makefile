@@ -1,3 +1,11 @@
+.PHONY: usage
+usage:
+	-echo 'Usage: make (docker|deploy-dashboard)'
+
+.PHONY: deploy-dashboard
+deploy-dashboard:
+	cd go/cmd/dashboard && unagi --bare make deploy
+
 .PHONY: bootstrap
 bootstrap:
 	cd docker && make bootstrap
