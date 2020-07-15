@@ -4,7 +4,6 @@ services:
     docker-host:
         image: qoomon/docker-host
         cap_add: [ 'NET_ADMIN', 'NET_RAW' ]
-        mem_limit: 8M
         restart: on-failure
     nginx:
         image: imos/icfpc2020:nginx
