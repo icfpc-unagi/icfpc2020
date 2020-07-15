@@ -4,11 +4,9 @@ services:
   mysql:
     image: imos/icfpc2020:sql
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: imos/icfpc2020:phpmyadmin
     environment:
       - PMA_HOST=mysql
-      - PMA_USER=root
-      - PMA_PASSWORD=${UNAGI_PASSWORD}
     links:
       - mysql
     ports:

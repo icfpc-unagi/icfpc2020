@@ -19,7 +19,8 @@ bootstrap: bootstrap.Dockerfile ../build/bootstrap
 
 .PHONY: data
 data: ../build/data
-	docker build --file data.Dockerfile -t imos/icfpc2020:data ../build/data
+	docker build --file data.Dockerfile \
+		-t imos/icfpc2020:data ../build/data
 
 ###############################################################################
 # Main image
@@ -32,6 +33,17 @@ docker: bootstrap data Dockerfile ../build/docker
 .PHONY: sql
 sql: data sql.Dockerfile
 	docker build --file sql.Dockerfile -t imos/icfpc2020:sql .
+
+.PHONY: phpmyadmin
+phpmyadmin: data phpmyadmin.Dockerfile
+	docker build --file phpmyadmin.Dockerfile \
+		--build-arg UNAGI_PASSWORD=$${UNAGI_PASSWORD} \
+		-t imos/icfpc2020:phpmyadmin .
+
+.PHOY: nginx
+nginx: data nginx/Dockerfile
+	docker build --file nginx/Dockerfile \
+		-t imos/icfpc2020:nginx ./nginx
 
 ###############################################################################
 # Utility targets
