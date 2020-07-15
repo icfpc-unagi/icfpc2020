@@ -1,3 +1,5 @@
+FROM imos/icfpc2020:data AS data
+
 FROM imos/icfpc2020:bootstrap
 
 ################################################################################
@@ -138,9 +140,9 @@ RUN python3 -m pip install werkzeug json-rpc jsonrpc-requests cachetools
 ################################################################################
 
 # Gcloud service account.
-ADD ./service_account.json /root/.config/service_account.json
-ADD ./service_account.p12 /root/.config/service_account.p12
-ADD ./service_account.pem /root/.config/service_account.pem
+COPY --from=data /data/service_account.json /root/.config/service_account.json
+COPY --from=data /data/service_account.p12 /root/.config/service_account.p12
+COPY --from=data /data/service_account.pem /root/.config/service_account.pem
 RUN gcloud auth activate-service-account \
     docker@icfpc-primary.iam.gserviceaccount.com \
     --key-file=/root/.config/service_account.json && \
@@ -149,23 +151,23 @@ RUN gcloud auth activate-service-account \
     gcloud config set compute/zone asia-northeast1-a
 
 # SSH settings.
-ADD ./id_ed25519 /root/.ssh/id_ed25519
-ADD ./id_ed25519 /root/.ssh/google_compute_engine
-ADD ./id_ed25519 /home/unagi/.ssh/id_ed25519
-ADD ./id_ed25519 /home/unagi/.ssh/google_compute_engine
+COPY --from=data /data/id_ed25519 /root/.ssh/id_ed25519
+COPY --from=data /data/id_ed25519 /root/.ssh/google_compute_engine
+COPY --from=data /data/id_ed25519 /home/unagi/.ssh/id_ed25519
+COPY --from=data /data/id_ed25519 /home/unagi/.ssh/google_compute_engine
 RUN chmod 400 \
     /root/.ssh/id_ed25519 \
     /root/.ssh/google_compute_engine \
     /home/unagi/.ssh/id_ed25519 \
     /home/unagi/.ssh/google_compute_engine
-ADD ./id_ed25519.pub /root/.ssh/authorized_keys
-ADD ./id_ed25519.pub /root/.ssh/id_ed25519.pub
-ADD ./id_ed25519.pub /root/.ssh/google_compute_engine.pub
-ADD ./id_ed25519.pub /home/unagi/.ssh/authorized_keys
-ADD ./id_ed25519.pub /home/unagi/.ssh/id_ed25519.pub
-ADD ./id_ed25519.pub /home/unagi/.ssh/google_compute_engine.pub
-ADD ./ssh_config /root/.ssh/config
-ADD ./ssh_config /home/unagi/.ssh/config
+COPY --from=data /data/id_ed25519.pub /root/.ssh/authorized_keys
+COPY --from=data /data/id_ed25519.pub /root/.ssh/id_ed25519.pub
+COPY --from=data /data/id_ed25519.pub /root/.ssh/google_compute_engine.pub
+COPY --from=data /data/id_ed25519.pub /home/unagi/.ssh/authorized_keys
+COPY --from=data /data/id_ed25519.pub /home/unagi/.ssh/id_ed25519.pub
+COPY --from=data /data/id_ed25519.pub /home/unagi/.ssh/google_compute_engine.pub
+COPY --from=data /data/ssh_config /root/.ssh/config
+COPY --from=data /data/ssh_config /home/unagi/.ssh/config
 RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 RUN ssh-keyscan github.com >> /home/unagi/.ssh/known_hosts
 RUN chown -R unagi:unagi /home/unagi/.ssh
@@ -182,7 +184,7 @@ RUN git config --global user.email \
 ENV CARGO_TARGET_DIR=/work/build
 ENV RUST_BACKTRACE=1
 
-ADD ./init-wrapper /usr/local/bin/init-wrapper
+COPY --from=data /data/init-wrapper /usr/local/bin/init-wrapper
 RUN chmod +x /usr/local/bin/init-wrapper
 
 ################################################################################

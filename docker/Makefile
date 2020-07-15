@@ -17,13 +17,21 @@ bootstrap: bootstrap.Dockerfile ../build/bootstrap
 		--build-arg UNAGI_PASSWORD=$${UNAGI_PASSWORD} \
 		-t imos/icfpc2020:bootstrap ../build/bootstrap
 
+.PHONY: data
+data: ../build/data
+	docker build --file data.Dockerfile -t imos/icfpc2020:data ../build/data
+
 ###############################################################################
 # Main image
 ###############################################################################
 
 .PHONY: docker
-docker: bootstrap Dockerfile ../build/docker
+docker: bootstrap data Dockerfile ../build/docker
 	docker build --file Dockerfile -t imos/icfpc2020 ../build/docker
+
+.PHONY: sql
+sql: data sql.Dockerfile
+	docker build --file sql.Dockerfile -t imos/icfpc2020:sql .
 
 ###############################################################################
 # Utility targets
@@ -43,14 +51,14 @@ encrypt@%: secret/% bootstrap
 .PHONY: data@%.encrypted
 data@%.encrypted:
 	docker run --rm -i imos/icfpc2020:bootstrap decrypt \
-		< data/$*.encrypted > ../build/docker/$*
+		< data/$*.encrypted > ../build/data/$*
 
 .PHONY: data@%
 data@%:
-	cp data/$* ../build/docker/$*
+	cp data/$* ../build/data/$*
 
-.PHONY: ../build/docker
-../build/docker:
-	-rm -rf ../build/docker
-	mkdir -p ../build/docker
+.PHONY: ../build/data
+../build/data:
+	-rm -rf ../build/data
+	mkdir -p ../build/data
 	for f in data/*; do make "data@$${f#data/}"; done

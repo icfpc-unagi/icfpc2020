@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+// TODO(imos): Enable the followings accessible.
+// import "google/protobuf/descriptor.proto";
+// import "google/protobuf/duration.proto";
+// import "google/protobuf/timestamp.proto";
+
+package pb;
+
+option go_package = "github.com/imos/icfpc2020/go/util/pb;pb";
+
+message Api {
+  // API Request defition.
+  //
+  // NEXT ID TO USE: 2
+  message Request {
+    message Context {}
+    Context context = 1;
+  }
+
+  // API Response defition.
+  //
+  // NEXT ID TO USE: 2
+  message Response {
+    message Context {
+      repeated string error_messages = 1;
+    }
+    Context context = 1;
+  }
+}

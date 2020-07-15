@@ -11,3 +11,5 @@ Cargo.lock
 
 # Files for builds.
 /build
+
+/.cache
