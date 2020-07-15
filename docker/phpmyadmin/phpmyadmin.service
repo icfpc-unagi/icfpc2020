@@ -1,0 +1,13 @@
+[Unit]
+Description=phpMyAdmin
+
+[Service]
+ExecStart=/usr/local/bin/docker-compose -p phpmyadmin -f /opt/phpmyadmin/docker-compose.yml up
+ExecStop=/usr/local/bin/docker-compose -p phpmyadmin -f /opt/phpmyadmin/docker-compose.yml down
+ExecReload=/usr/local/bin/docker-compose -p phpmyadmin -f /opt/phpmyadmin/docker-compose.yml restart
+Restart=always
+
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
