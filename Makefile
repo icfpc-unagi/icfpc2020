@@ -2,6 +2,10 @@
 usage:
 	-echo 'Usage: make (docker|deploy-dashboard)'
 
+.PHONY: test
+test:
+	echo 'This is test target'
+
 .PHONY: deploy-dashboard
 deploy-dashboard:
 	cd go/cmd/dashboard && unagi --bare make deploy
@@ -34,7 +38,7 @@ upload-installer: docker/upload-installer
 push-docker: docker/push-docker-latest
 
 .PHONY: docker/%
-docker/%: docker
+docker/%: unagi
 	docker run -v $(shell pwd):/work -w /work \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		imos/icfpc2020 make "orig@$*"
