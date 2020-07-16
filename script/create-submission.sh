@@ -21,21 +21,9 @@ COMMIT_MSG="$(git log -n 1)"
 
 pushd build/submission
 git checkout -b "candidates/${DATETIME}-${COMMIT_ID}"
-for f in *; do
-    if [ "${f}" == '.git' ]; then
-        continue
-    fi
-    rm -rf "${f}"
-done
 popd
 
-cp -a app build/submission/app
-cp -a Cargo.toml build/submission/
-cp -a submission/* build/submission/
-
-pushd build/submission
-cargo vendor
-popd
+bash script/build-submission.sh
 
 pushd build/submission
 git add -A
