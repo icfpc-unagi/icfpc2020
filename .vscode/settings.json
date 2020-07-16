@@ -1,0 +1,6 @@
+{
+    "files.watcherExclude": {
+        "**/.cache/**": true,
+        "**/vendor/**": true
+    }
+}
