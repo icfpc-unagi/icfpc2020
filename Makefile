@@ -6,6 +6,11 @@ usage:
 test:
 	echo 'This is test target'
 
+.PHONY: submission
+submission:
+	@rm -rf build/submission
+	bash script/build-submission.sh
+
 .PHONY: deploy-dashboard
 deploy-dashboard:
 	cd go/cmd/dashboard && unagi --bare make deploy
