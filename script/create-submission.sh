@@ -8,8 +8,13 @@ cd "$(dirname "${BASH_SOURCE}")/.."
 if [ -d build/submission ]; then
     rm -rf build/submission
 fi
-git clone -b submission --single-branch --depth=1 \
-    git@github.com:imos/icfpc2020-submission.git build/submission
+if [ "${UNAGI_GITHUB_TOKEN:-}" != '' ]; then
+    REPOSITORY_URI="https://$UNAGI_GITHUB_TOKEN@github.com/imos/icfpc2020-submission.git"
+else
+    REPOSITORY_URI=git@github.com:imos/icfpc2020-submission.git
+fi
+git clone -b submission --single-branch --depth=1 "${REPOSITORY_URI}" build/submission
+
 DATETIME="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S)"
 COMMIT_ID="$(git rev-parse --short HEAD)"
 COMMIT_MSG="$(git log -n 1)"

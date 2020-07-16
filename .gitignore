@@ -8,3 +8,4 @@
 # Files for builds.
 /build
 /.cache
+/vendor

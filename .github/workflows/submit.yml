@@ -1,0 +1,23 @@
+name: Submit
+
+on:
+  push:
+    tags:
+    - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test
+      env:
+        UNAGI_GITHUB_TOKEN: ${{ secrets.UNAGI_GITHUB_TOKEN }}
+      run: |
+        git config --global user.email "5896564+ninetan@users.noreply.github.com"
+        git config --global user.name "ninetan"
+        bash script/create-submission.sh
