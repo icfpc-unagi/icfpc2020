@@ -1,8 +1,9 @@
 name: Submit
 
 on:
-  pull_request:
-    branches: [ master ]
+  push:
+    tags:
+    - '*'
 
 env:
   CARGO_TERM_COLOR: always
