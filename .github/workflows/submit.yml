@@ -1,4 +1,4 @@
-name: Test
+name: Submit
 
 on:
   pull_request:
@@ -8,11 +8,10 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  submit:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Test
       run: bash script/create-submission.sh
-
