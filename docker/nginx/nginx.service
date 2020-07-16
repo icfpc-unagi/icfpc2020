@@ -1,0 +1,13 @@
+[Unit]
+Description=nginx
+
+[Service]
+ExecStart=/usr/local/bin/docker-compose -p nginx -f /opt/nginx/docker-compose.yml up
+ExecStop=/usr/local/bin/docker-compose -p nginx -f /opt/nginx/docker-compose.yml down
+ExecReload=/usr/local/bin/docker-compose -p nginx -f /opt/nginx/docker-compose.yml restart
+Restart=always
+
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

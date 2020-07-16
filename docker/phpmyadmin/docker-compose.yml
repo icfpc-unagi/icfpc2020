@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  mysql:
+    image: imos/icfpc2020:sql
+  phpmyadmin:
+    image: imos/icfpc2020:phpmyadmin
+    environment:
+      - PMA_HOST=mysql
+    links:
+      - mysql
+    ports:
+      - 4040:80

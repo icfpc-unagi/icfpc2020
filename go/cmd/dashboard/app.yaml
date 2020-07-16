@@ -1,0 +1,14 @@
+runtime: go111
+automatic_scaling:
+  max_idle_instances: 1
+  max_concurrent_requests: 8
+  min_pending_latency: 3s
+
+env_variables:
+  SQL_PROTOCOL: unix
+  SQL_ADDRESS: /cloudsql/icfpc-primary:asia-northeast1:tokyo
+  CLOUDSQL_CONNECTION_NAME: "icfpc-primary:asia-northeast1:tokyo"
+  CLOUDSQL_USER: "unagi"
+
+includes:
+- app-base.yaml
