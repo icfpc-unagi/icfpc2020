@@ -14,8 +14,8 @@ DATETIME="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S)"
 COMMIT_ID="$(git rev-parse --short HEAD)"
 COMMIT_MSG="$(git log -n 1)"
 
-git checkout -b "candidates/${DATETIME}-${COMMIT_ID}"
 pushd build/submission
+git checkout -b "candidates/${DATETIME}-${COMMIT_ID}"
 for f in *; do
     if [ "${f}" == '.git' ]; then
         continue
@@ -35,5 +35,5 @@ popd
 pushd build/submission
 git add -A
 git commit -am "${DATETIME}-${COMMIT_ID}"$'\n'"${COMMIT_MSG}"
-git push --set-upstream origin "HEAD:candidates/${DATETIME}-${COMMIT_ID}"
+git push --set-upstream origin "candidates/${DATETIME}-${COMMIT_ID}"
 popd
