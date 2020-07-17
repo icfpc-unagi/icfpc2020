@@ -7,6 +7,10 @@ test:
 	cargo vendor
 	cargo test
 
+.PHONY: format
+format:
+	cargo fmt
+
 .PHONY: submission
 submission:
 	@rm -rf build/submission
