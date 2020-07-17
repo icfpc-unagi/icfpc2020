@@ -16,8 +16,8 @@ for f in *; do
 done
 popd
 
-cp -a app build/submission/app
-cp -a Cargo.toml build/submission/
+cp -a src build/submission/src
+cp -a Cargo.toml Cargo.lock build/submission/
 cp -a submission/* build/submission/
 
 pushd build/submission
