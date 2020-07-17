@@ -3,6 +3,8 @@ use hyper::{Client, Request, Method, Body, StatusCode};
 use std::env;
 use std::process;
 
+pub mod modulate;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args: Vec<String> = env::args().collect();
