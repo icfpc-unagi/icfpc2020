@@ -2,6 +2,8 @@ use std::collections::*;
 use std::rc::Rc;
 use num::*;
 
+pub mod modulation;
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum E {
 	Ap(Rc<E>, Rc<E>),
