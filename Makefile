@@ -20,6 +20,10 @@ submission:
 	@rm -rf build/submission
 	bash script/build-submission.sh
 
+.PHONY: submission-test
+submission-test: submission
+	cd build/submission && bash build.sh && bash run.sh http://imoz.jp test
+
 .PHONY: deploy-dashboard
 deploy-dashboard:
 	cd go/cmd/dashboard && unagi --bare make deploy
