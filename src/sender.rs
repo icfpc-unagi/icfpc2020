@@ -2,6 +2,7 @@ use http_body::Body as _;
 use hyper::{Client, Request, Method, Body, StatusCode};
 use hyper_tls::HttpsConnector;
 use tokio::runtime::Runtime;
+use std::env;
 
 async fn send_async(s: String) -> String {
     let https = HttpsConnector::new();
@@ -9,7 +10,9 @@ async fn send_async(s: String) -> String {
         .build::<_, hyper::Body>(https);
     let req = Request::builder()
         .method(Method::POST)
-        .uri("https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=ffb372cc81824c9e820112787bc93329")
+        .uri(format!("{}{}",
+            "https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=",
+            env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")))
         .body(Body::from(s)).unwrap();
     match client.request(req).await {
         Ok(mut res) => {
