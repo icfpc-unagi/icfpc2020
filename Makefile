@@ -4,7 +4,8 @@ usage:
 
 .PHONY: test
 test:
-	echo 'This is test target'
+	cargo vendor
+	cargo test
 
 .PHONY: submission
 submission:
