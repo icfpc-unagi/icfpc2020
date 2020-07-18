@@ -14,8 +14,8 @@ fn run() {
 		assert_eq!(n, ss.len() - 2);
 		functions.insert(name, exp);
 	}
-	let f = parser::eval(&functions["galaxy"], &functions, false);
-	println!("galaxy = {}", parser::eval(&f, &functions, true));
+	let f = parser::eval(&functions["galaxy"], &functions, false, &mut app::parser::Data::default());
+	println!("galaxy = {}", parser::eval(&f, &functions, true, &mut app::parser::Data::default()));
 }
 
 fn main() {

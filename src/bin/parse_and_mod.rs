@@ -17,11 +17,11 @@ fn main() {
 		functions.insert(name, exp);
 	}
 	for id in functions.keys() {
-		let f = parser::eval(&functions[id], &functions, false);
+		let f = parser::eval(&functions[id], &functions, false, &mut app::parser::Data::default());
 		println!("{}: {}", id, f);
 	}
-	let f = parser::eval(&functions["main"], &functions, false);
-	let result = parser::eval(&f, &functions, true);
+	let f = parser::eval(&functions["main"], &functions, false, &mut app::parser::Data::default());
+	let result = parser::eval(&f, &functions, true, &mut app::parser::Data::default());
 	if let E::Pair(_, x) = &result {
 		if let E::Pair(state, x) = x.as_ref() {
 			if let E::Pair(x, _) = x.as_ref() {

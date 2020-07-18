@@ -8,6 +8,7 @@ pub enum E {
 	Num(BigInt),
 	Pair(Rc<E>, Rc<E>),
 	Etc(String),
+	Cloned(Rc<E>, usize),
 }
 
 pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
@@ -34,25 +35,40 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 	}
 }
 
-pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
+#[derive(Clone, Default)]
+pub struct Data {
+	pub count: BTreeMap<String, usize>,
+	pub cache: Vec<Option<E>>,
+}
+
+pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data) -> E {
 	match e {
+		E::Cloned(a, id) => {
+			if let Some(ref b) = data.cache[*id] {
+				b.clone()
+			} else {
+				let b = eval(a.as_ref(), map, eval_tuple, data);
+				data.cache[*id] = Some(b.clone());
+				b
+			}
+		}
 		E::Ap(x1, y1) => {
-			let x1 = eval(&x1, map, eval_tuple);
+			let x1 = eval(&x1, map, eval_tuple, data);
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Etc(name) if name == "cons" => {
 						if eval_tuple {
 							E::Pair(
-								eval(y2, map, eval_tuple).into(),
-								eval(y1, map, eval_tuple).into(),
+								eval(y2, map, eval_tuple, data).into(),
+								eval(y1, map, eval_tuple, data).into(),
 							)
 						} else {
 							E::Pair(y2.clone(), y1.clone().into())
 						}
 					}
 					E::Etc(name) if name == "eq" => {
-						let y1 = eval(&y1, map, eval_tuple);
-						let y2 = eval(&y2, map, eval_tuple);
+						let y1 = eval(&y1, map, eval_tuple, data);
+						let y2 = eval(&y2, map, eval_tuple, data);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => {
 								if y1 == y2 {
@@ -68,11 +84,11 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 							}
 						}
 					}
-					E::Etc(name) if name == "t" => eval(&y2, map, eval_tuple),
-					E::Etc(name) if name == "f" => eval(&y1, map, eval_tuple),
+					E::Etc(name) if name == "t" => eval(&y2, map, eval_tuple, data),
+					E::Etc(name) if name == "f" => eval(&y1, map, eval_tuple, data),
 					E::Etc(name) if name == "add" => {
-						let y1 = eval(&y1, map, eval_tuple);
-						let y2 = eval(&y2, map, eval_tuple);
+						let y1 = eval(&y1, map, eval_tuple, data);
+						let y2 = eval(&y2, map, eval_tuple, data);
 						match (y1, y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y1 + y2),
 							_ => {
@@ -81,8 +97,8 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 						}
 					}
 					E::Etc(name) if name == "mul" => {
-						let y1 = eval(&y1, map, eval_tuple);
-						let y2 = eval(&y2, map, eval_tuple);
+						let y1 = eval(&y1, map, eval_tuple, data);
+						let y2 = eval(&y2, map, eval_tuple, data);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y1 * y2),
 							_ => {
@@ -93,8 +109,8 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 						}
 					}
 					E::Etc(name) if name == "div" => {
-						let y1 = eval(&y1, map, eval_tuple);
-						let y2 = eval(&y2, map, eval_tuple);
+						let y1 = eval(&y1, map, eval_tuple, data);
+						let y2 = eval(&y2, map, eval_tuple, data);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y2 / y1),
 							_ => {
@@ -105,8 +121,8 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 						}
 					}
 					E::Etc(name) if name == "lt" => {
-						let y1 = eval(&y1, map, eval_tuple);
-						let y2 = eval(&y2, map, eval_tuple);
+						let y1 = eval(&y1, map, eval_tuple, data);
+						let y2 = eval(&y2, map, eval_tuple, data);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => {
 								if y2 < y1 {
@@ -127,26 +143,33 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 							&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
 							map,
 							eval_tuple,
+							data,
 						),
 						E::Etc(name) if name == "c" => eval(
 							&E::Ap(Rc::new(E::Ap(y3.clone(), y1.clone())), y2.clone()),
 							map,
 							eval_tuple,
+							data,
 						),
-						E::Etc(name) if name == "s" => eval(
-							&E::Ap(
-								Rc::new(E::Ap(y3.clone(), y1.clone())),
-								Rc::new(E::Ap(y2.clone(), y1.clone())),
-							),
-							map,
-							eval_tuple,
-						),
+						E::Etc(name) if name == "s" => {
+							let id = data.cache.len();
+							data.cache.push(None);
+							eval(
+								&E::Ap(
+									Rc::new(E::Ap(y3.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
+									Rc::new(E::Ap(y2.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
+								),
+								map,
+								eval_tuple,
+								data,
+							)
+						}
 						E::Etc(name) if name == "if0" => {
-							if let E::Num(a) = eval(y3, map, eval_tuple) {
+							if let E::Num(a) = eval(y3, map, eval_tuple, data) {
 								if a.is_zero() {
-									eval(y2, map, eval_tuple)
+									eval(y2, map, eval_tuple, data)
 								} else {
-									eval(y1, map, eval_tuple)
+									eval(y1, map, eval_tuple, data)
 								}
 							} else {
 								panic!()
@@ -160,44 +183,45 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 					&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
 					map,
 					eval_tuple,
+					data,
 				),
 				E::Etc(name) if name == "inc" => {
-					if let E::Num(a) = eval(y1, map, eval_tuple) {
+					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
 						E::Num(a + 1)
 					} else {
 						panic!();
 					}
 				}
 				E::Etc(name) if name == "dec" => {
-					if let E::Num(a) = eval(y1, map, eval_tuple) {
+					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
 						E::Num(a - 1)
 					} else {
 						panic!();
 					}
 				}
 				E::Etc(name) if name == "neg" => {
-					if let E::Num(a) = eval(y1, map, eval_tuple) {
+					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
 						E::Num(-a)
 					} else {
 						panic!();
 					}
 				}
 				E::Etc(name) if name == "car" => {
-					if let E::Pair(a, _) = eval(y1, map, eval_tuple) {
-						eval(&a, map, eval_tuple)
+					if let E::Pair(a, _) = eval(y1, map, eval_tuple, data) {
+						eval(&a, map, eval_tuple, data)
 					} else {
 						panic!();
 					}
 				}
 				E::Etc(name) if name == "cdr" => {
-					if let E::Pair(_, a) = eval(y1, map, eval_tuple) {
-						eval(&a, map, eval_tuple)
+					if let E::Pair(_, a) = eval(y1, map, eval_tuple, data) {
+						eval(&a, map, eval_tuple, data)
 					} else {
 						panic!();
 					}
 				}
 				E::Etc(name) if name == "isnil" => {
-					let y1 = eval(y1, map, eval_tuple);
+					let y1 = eval(y1, map, eval_tuple, data);
 					if let E::Etc(name) = y1 {
 						if name == "nil" {
 							E::Etc("t".to_owned())
@@ -211,15 +235,18 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 						panic!();
 					}
 				}
-				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple),
+				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple, data),
 				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
-		E::Etc(name) if name.starts_with(":") => eval(&map[name], map, eval_tuple),
+		E::Etc(name) if name.starts_with(":") => {
+			*data.count.entry(name.clone()).or_insert(0) += 1;
+			eval(&map[name], map, eval_tuple, data)
+		}
 		E::Pair(a, b) if eval_tuple => E::Pair(
-			eval(a, map, eval_tuple).into(),
-			eval(b, map, eval_tuple).into(),
+			eval(a, map, eval_tuple, data).into(),
+			eval(b, map, eval_tuple, data).into(),
 		),
 		e => e.clone(),
 	}
@@ -278,6 +305,9 @@ impl std::fmt::Display for E {
 				write!(f, " ")?;
 				b.fmt(f)?;
 				write!(f, ")")?;
+			}
+			E::Cloned(a, _) => {
+				write!(f, "{}", a)?;
 			}
 			E::Num(a) => write!(f, "{}", a)?,
 			E::Pair(a, b) => {
