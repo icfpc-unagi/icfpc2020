@@ -16,15 +16,8 @@ fn main() {
 	for line in stdin.lines() {
 		let line = line.unwrap();
 		let result = demodulate(&line);
-		let img = {
-			let vv = translate_to_vecvec(&result);
-			if vv.len() != 0 {
-				multidraw(&vv)
-			} else {
-				let v = translate_to_vec(&result);
-				draw(&v)
-			}
-		};
+		let vv = translate_to_vecvec(&result);
+		let img = multidraw_gradient(&vv);
 		img.save(output).unwrap();
 	}
 }

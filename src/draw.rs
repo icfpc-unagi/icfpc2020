@@ -5,6 +5,7 @@ use std::vec::Vec;
 
 const W: u32 = 17;
 const H: u32 = 13;
+const GRADIENT: colorous::Gradient = colorous::TURBO;
 
 pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
 	let mut out = Vec::new();
@@ -34,26 +35,49 @@ pub fn translate_to_vecvec(e: &E) -> Vec<Vec<(BigInt, BigInt)>> {
 	out
 }
 
-pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> GrayImage {
-	let mut img = GrayImage::from_pixel(W, H, Luma::from([0]));
-	draw_on(&mut img, dots);
+pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> DynamicImage {
+	let mut img = DynamicImage::new_luma8(W, H);
+	draw_on(&mut img, dots, Rgba([255, 255, 255, 255]));
 	img
 }
 
-pub fn multidraw(v: &Vec<Vec<(BigInt, BigInt)>>) -> GrayImage {
-	let mut img = GrayImage::new(W * v.len() as u32, H);
+// stack images vertically from top to bottom
+pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
+	let mut img = DynamicImage::new_rgb8(W, H * v.len() as u32);
 	for i in 0..v.len() {
-		draw_on(&mut img.sub_image(W * i as u32, 0, W, H), &v[i]);
+		draw_on(
+			&mut img.sub_image(0, H * i as u32, W, H),
+			&v[i],
+			Rgba([255, 255, 255, 255]),
+		);
 	}
 	img
 }
 
-fn draw_on<T: GenericImage<Pixel = Luma<u8>>>(img: &mut T, dots: &Vec<(BigInt, BigInt)>) {
+// overwrite with gradient colormap
+pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
+	let mut img = DynamicImage::new_rgb8(W, H);
+	for i in 0..v.len() {
+		let c = GRADIENT.eval_rational(i, 255);
+		draw_on(
+			&mut img.sub_image(W * i as u32, 0, W, H),
+			&v[i],
+			Rgba([c.r, c.g, c.b, 255]),
+		);
+	}
+	img
+}
+
+fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
+	img: &mut T,
+	dots: &Vec<(BigInt, BigInt)>,
+	px: Rgba<u8>,
+) {
 	for dot in dots {
 		if let Some(x) = dot.0.to_u32() {
 			if let Some(y) = dot.1.to_u32() {
 				if x < img.width() && y < img.height() {
-					img.put_pixel(x, y, Luma::from([255]));
+					img.put_pixel(x, y, px);
 				}
 			}
 		}
