@@ -327,3 +327,29 @@ impl std::fmt::Display for E {
 		Ok(())
 	}
 }
+
+// iterate as list
+impl<'a> IntoIterator for &'a E {
+	type Item = &'a E;
+	type IntoIter = EIterator<'a>;
+	fn into_iter(self) -> Self::IntoIter {
+		EIterator(&self)
+	}
+}
+
+#[derive(Debug)]
+pub struct EIterator<'a>(&'a E);
+
+impl<'a> Iterator for EIterator<'a> {
+	type Item = &'a E;
+	fn next(&mut self) -> Option<Self::Item> {
+		match &self.0 {
+			E::Etc(x) if x == "nil" => None,
+			E::Pair(head, tail) => {
+				self.0 = tail.as_ref();
+				Some(head.as_ref())
+			}
+			_ => panic!(),
+		}
+	}
+}

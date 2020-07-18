@@ -1,9 +1,38 @@
+use super::parser::*;
 use image::*;
 use num::*;
 use std::vec::Vec;
 
 const W: u32 = 17;
 const H: u32 = 13;
+
+pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
+	let mut out = Vec::new();
+	for i in e {
+		if let E::Pair(x, y) = i {
+			if let E::Num(x) = x.as_ref() {
+				if let E::Num(y) = y.as_ref() {
+					out.push((x.clone(), y.clone()));
+				} else {
+					eprintln!("unexpected {:?}", y.as_ref());
+				}
+			} else {
+				eprintln!("unexpected {:?}", x.as_ref());
+			}
+		} else {
+			eprintln!("unexpected {:?}", i);
+		}
+	}
+	out
+}
+
+pub fn translate_to_vecvec(e: &E) -> Vec<Vec<(BigInt, BigInt)>> {
+	let mut out = Vec::new();
+	for i in e {
+		out.push(translate_to_vec(i));
+	}
+	out
+}
 
 pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> GrayImage {
 	let mut img = GrayImage::from_pixel(W, H, Luma::from([0]));

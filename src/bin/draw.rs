@@ -1,8 +1,6 @@
 use app::*;
-use draw::draw;
+use draw::*;
 use modulation::demodulate;
-use num::*;
-use parser::E;
 use std::io::*;
 
 // Usage: draw output.png <<< 111101001000
@@ -18,23 +16,15 @@ fn main() {
 	for line in stdin.lines() {
 		let line = line.unwrap();
 		let result = demodulate(&line);
-		let img = draw(&translate(&result));
+		let img = {
+			let vv = translate_to_vecvec(&result);
+			if vv.len() != 0 {
+				multidraw(&vv)
+			} else {
+				let v = translate_to_vec(&result);
+				draw(&v)
+			}
+		};
 		img.save(output).unwrap();
 	}
-}
-
-fn translate(e: &E) -> Vec<(BigInt, BigInt)> {
-	let mut i = e;
-	let mut out = Vec::new();
-	while let E::Pair(head, tail) = &*i {
-		if let E::Pair(x, y) = head.as_ref() {
-			if let E::Num(x) = x.as_ref() {
-				if let E::Num(y) = y.as_ref() {
-					out.push((x.clone(), y.clone()));
-					i = tail.as_ref();
-				}
-			}
-		}
-	}
-	out
 }
