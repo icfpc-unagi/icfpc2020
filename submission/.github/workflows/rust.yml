@@ -12,9 +12,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cd app && cargo build --release --offline
+      run: cargo build --release --offline
     - name: Run tests
-      run: cd app && cargo test --verbose
+      run: cargo test --verbose

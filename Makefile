@@ -5,7 +5,10 @@ usage:
 .PHONY: test
 test:
 	cargo vendor
+	cargo build
 	cargo test
+	./target/debug/galaxy < ./data/galaxy.txt | \
+		diff - ./data/galaxy_expected.txt
 
 .PHONY: build
 build:
