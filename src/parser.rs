@@ -2,12 +2,12 @@ use num::*;
 use std::collections::*;
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, PartialOrd)]
 pub enum E {
 	Ap(Rc<E>, Rc<E>),
-	Num(BigInt),
-	Pair(Rc<E>, Rc<E>),
 	Etc(String),
+	Pair(Rc<E>, Rc<E>),
+	Num(BigInt),
 	Cloned(Rc<E>, usize),
 }
 
@@ -465,6 +465,17 @@ impl<'a> Iterator for EIterator<'a> {
 	}
 }
 
+// into coords
+impl Into<(BigInt, BigInt)> for &E {
+	fn into(self) -> (BigInt, BigInt) {
+		if let E::Pair(x, y) = self {
+			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
+				return (x.clone(), y.clone());
+			}
+		}
+		panic!("expected coords but got {:?}", self)
+	}
+}
 
 #[cfg(test)]
 mod tests {

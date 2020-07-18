@@ -38,7 +38,7 @@ async fn send_async(s: String) -> String {
 }
 
 #[allow(dead_code)]
-fn send(s: &str) -> String {
+pub fn send(s: &str) -> String {
 	let s = String::from(s);
 	Runtime::new()
 		.expect("Failed to create tokio runtime")

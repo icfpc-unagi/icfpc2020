@@ -8,15 +8,7 @@ const GRADIENT: colorous::Gradient = colorous::TURBO;
 pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
 	let mut out = Vec::new();
 	for i in e {
-		if let E::Pair(x, y) = i {
-			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
-				out.push((x.clone(), y.clone()));
-			} else {
-				eprintln!("expected Pair(Num, Num) but got {:?}", i);
-			}
-		} else {
-			eprintln!("expected Pair but got {:?}", i);
-		}
+		out.push(i.into());
 	}
 	out
 }
@@ -39,14 +31,14 @@ pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> DynamicImage {
 // stack images vertically from top to bottom
 pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
-	let mut img = DynamicImage::new_rgb8(w, h);
-	draw_axes(&mut img, &offset);
+	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(w, h, Rgb([255, 255, 255])));
+	draw_axes(&mut img, &offset, 10);
 	for i in 0..v.len() {
 		draw_on(
 			&mut img.sub_image(0, h * i as u32, w, h),
 			&v[i],
 			&offset,
-			Rgba([255, 255, 255, 255]),
+			Rgba([0, 0, 0, 255]),
 		);
 	}
 	img
@@ -55,8 +47,8 @@ pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 // overwrite with gradient colormap
 pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
-	let mut img = DynamicImage::new_rgba8(w, h);
-	draw_axes(&mut img, &offset);
+	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(w, h, Rgb([255, 255, 255])));
+	draw_axes(&mut img, &offset, 10);
 	for i in 0..v.len() {
 		let c = GRADIENT.eval_rational(i + 1, v.len() + 1);
 		draw_on(&mut img, &v[i], &offset, Rgba([c.r, c.g, c.b, 255]));
@@ -64,18 +56,35 @@ pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	img
 }
 
-fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt)) {
-	if let Some(y) = offset.1.to_u32() {
-		if y < img.height() {
+pub fn multidraw_gradient_scale(v: &Vec<Vec<(BigInt, BigInt)>>, scale: u32) -> DynamicImage {
+	let ((w, h), offset) = range_vv(v);
+	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(
+		w * scale,
+		h * scale,
+		Rgb([255, 255, 255]),
+	));
+	draw_axes(&mut img, &offset, 10 * scale);
+	for i in 0..v.len() {
+		let c = GRADIENT.eval_rational(i + 1, v.len() + 1);
+		draw_on_scale(&mut img, &v[i], &offset, Rgba([c.r, c.g, c.b, 255]), scale);
+	}
+	img
+}
+
+fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt), step: u32) {
+	const AXES_COLOR: Rgba<u8> = Rgba([127, 127, 127, 255]);
+	const GRID_COLOR: Rgba<u8> = Rgba([63, 63, 63, 255]);
+	if let Some(ya) = offset.1.to_u32() {
+		for y in (ya % step..img.height()).step_by(step as usize) {
 			for x in 0..img.width() {
-				img.put_pixel(x, y, Rgba([127, 127, 127, 255]));
+				img.put_pixel(x, y, if y == ya { AXES_COLOR } else { GRID_COLOR });
 			}
 		}
 	}
-	if let Some(x) = offset.0.to_u32() {
-		if x < img.width() {
+	if let Some(xa) = offset.0.to_u32() {
+		for x in (xa % step..img.width()).step_by(step as usize) {
 			for y in 0..img.height() {
-				img.put_pixel(x, y, Rgba([127, 127, 127, 255]));
+				img.put_pixel(x, y, if x == xa { AXES_COLOR } else { GRID_COLOR });
 			}
 		}
 	}
@@ -141,6 +150,24 @@ fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
 	for dot in dots {
 		if let (Some(x), Some(y)) = ((&dot.0 + &offset.0).to_u32(), (&dot.1 + &offset.1).to_u32()) {
 			img.put_pixel(x, y, px);
+		}
+	}
+}
+
+fn draw_on_scale<T: GenericImage<Pixel = Rgba<u8>>>(
+	img: &mut T,
+	dots: &Vec<(BigInt, BigInt)>,
+	offset: &(BigInt, BigInt),
+	px: Rgba<u8>,
+	scale: u32,
+) {
+	for dot in dots {
+		if let (Some(x), Some(y)) = ((&dot.0 + &offset.0).to_u32(), (&dot.1 + &offset.1).to_u32()) {
+			for xs in 0..scale {
+				for ys in 0..scale {
+					img.put_pixel(x * scale + xs, y * scale + ys, px);
+				}
+			}
 		}
 	}
 }

@@ -20,18 +20,21 @@ fn run() {
 	// 	let f = eval(&functions[id], &functions, false);
 	// 	println!("{}: {}", id, f);
 	// }
-	let mut state = E::Etc("nil".to_owned());
+	let state = "ap ap cons 5 ap ap cons ap ap cons 1 ap ap cons 0 ap ap cons nil ap ap cons nil ap ap cons nil ap ap cons nil ap ap cons nil ap ap cons 0 nil ap ap cons 0 ap ap cons nil nil";
+	let mut state = eval(&parse(&state.split_whitespace().collect::<Vec<_>>(), 0).0, &functions, true, &mut Default::default());
+	eprintln!("{}", state);
 	let mut rng = rand::thread_rng();
-	let mut data = app::parser::Data::default();
+	let mut last_flag = 0;
 	for iter in 0.. {
-		let x = if iter == 0 { 0 } else { rng.gen_range(-20, 20) };
-		let y = if iter == 0 { 0 } else { rng.gen_range(-20, 20) };
-		let s = format!("ap ap cons {} {}", x, y);
+		let x = rng.gen_range(-20, 20);
+		let y = rng.gen_range(-20, 20);
+		let s = if last_flag == 0 { "ap ap cons 1 ap ap cons 80000 nil".to_owned() } else { format!("ap ap cons {} {}", x, y) };
 		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
 		let exp = E::Ap(
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
+		let mut data = app::parser::Data::default();
 		let f = eval(&exp, &functions, true, &mut data);
 		// eprintln!("{}", f);
 		// for (id, c) in data.count {
@@ -52,13 +55,20 @@ fn run() {
 		};
 		if flag || state.to_string() == "[]" || (state.to_string().len(), state.to_string()) < (new_state.to_string().len(), new_state.to_string()) {
 			state = new_state;
-			app::visualize::multidraw_from_e(&data);
+			eprintln!("flag = {}", flag);
 			eprintln!("{} {}", x, y);
 			eprintln!("state: {}", state);
+			eprintln!("data: {}", data);
 			println!("modulated: {}", app::modulation::modulate(&data));
+			if !flag {
+				app::visualize::multidraw_from_e(&data);
+			}
+			eprintln!("state: {}", state);
 		}
 		if flag {
-			break;
+			last_flag = 0;
+		} else {
+			last_flag = -1;
 		}
 	}
 	// let f = eval(&functions["hoge"], &functions, false);
