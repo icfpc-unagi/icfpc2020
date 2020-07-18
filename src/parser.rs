@@ -243,7 +243,7 @@ fn eval_whnf(e: &E, map: &BTreeMap<String, E>, data: &mut Data) -> E {
 				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
 				E::Etc(name) if name == "modem" => {
 					let y1 = eval(y1, map, true, data);
-					// y1.assert_mod();
+					y1.assert_mod();
 					y1
 				}
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
@@ -419,6 +419,24 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 		);
 	}
 	panic!("Unexpected literal: {}", s);
+}
+
+impl E {
+	fn assert_mod(&self) {
+		match self {
+			E::Etc(x) if x == "nil" => {
+				return;
+			}
+			E::Num(_) => {
+				return;
+			}
+			E::Pair(a, b) => {
+				a.assert_mod();
+				b.assert_mod();
+			}
+			_ => panic!(),
+		}
+	}
 }
 
 // iterate as list
