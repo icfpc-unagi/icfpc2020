@@ -5,7 +5,9 @@ usage:
 .PHONY: test
 test:
 	cargo vendor
+	cargo build
 	cargo test
+	./target/debug/galaxy < ./data/galaxy.txt
 
 .PHONY: build
 build:
