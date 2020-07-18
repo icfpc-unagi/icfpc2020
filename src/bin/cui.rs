@@ -8,7 +8,8 @@ type E = app::parser::E;
 fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>) -> E {
 	let now = ::std::time::Instant::now();
 	let mut data = app::parser::Data::default();
-	let f = eval(&exp, &functions, true, &mut data);
+	let f = eval(&exp, &functions, false, &mut data);
+	let f = eval(&f, &functions, true, &mut data);
 	let dur = now.elapsed();
 	eprintln!("{:.6} sec", dur.as_secs_f64());
 	f
@@ -114,7 +115,7 @@ fn run() {
 				eprintln!("flag = {}", flag);
 				eprintln!("state: {}", state);
 			}
-			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+			// app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
 		} else {
 			eprintln!("orz");
 		}
