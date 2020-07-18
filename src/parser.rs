@@ -56,25 +56,22 @@ pub struct Data {
 pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data) -> E {
 	match e {
 		E::Cloned(a, id) => {
-			if let Some(ref b) = data.cache2[*id] {
-				b.clone()
-			} else if let Some(ref b) = data.cache[*id] {
-				if !eval_tuple {
+			if !eval_tuple {
+				if let Some(ref b) = data.cache[*id] {
 					b.clone()
 				} else {
-					let a = b.clone();
-					let b = eval(&a, map, eval_tuple, data);
-					data.cache2[*id] = Some(b.clone());
+					let b = eval(a.as_ref(), map, eval_tuple, data);
+					data.cache[*id] = Some(b.clone());
 					b
 				}
 			} else {
-				let b = eval(a.as_ref(), map, eval_tuple, data);
-				if !eval_tuple {
-					data.cache[*id] = Some(b.clone());
+				if let Some(ref b) = data.cache2[*id] {
+					b.clone()
 				} else {
+					let b = eval(a.as_ref(), map, eval_tuple, data);
 					data.cache2[*id] = Some(b.clone());
+					b
 				}
-				b
 			}
 		}
 		E::Ap(x1, y1) => {
