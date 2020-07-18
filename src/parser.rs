@@ -337,7 +337,7 @@ pub fn to_text(e: &E) -> String {
 		E::Ap(a, b) => format!("ap {} {}", to_text(a), to_text(b)),
 		E::Cloned(a, _) => to_text(a),
 		E::Num(a) => format!("{}", a),
-		E::Pair(a, b) => format!("ap {} {}", to_text(a), to_text(b)),
+		E::Pair(a, b) => format!("ap ap cons {} {}", to_text(a), to_text(b)),
 		E::Etc(name) => name.to_owned(),
 	}
 }
