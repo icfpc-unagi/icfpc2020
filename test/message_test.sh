@@ -212,8 +212,8 @@ test_message 'galaxy = ap cdr ap ap cons x0 x1' 'galaxy = x1'
 
 
 # #29. Is Nil (Is Empty List)
-# test_message 'galaxy = ap isnil nil' 'galaxy = t'
-# test_message 'galaxy = ap isnil ap ap cons x0 x1' 'galaxy = f'
+test_message 'galaxy = ap isnil nil' 'galaxy = t'
+test_message 'galaxy = ap isnil ap ap cons x0 x1' 'galaxy = f'
 
 
 # #31. Vector
