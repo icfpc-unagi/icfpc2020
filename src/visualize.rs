@@ -103,10 +103,10 @@ pub fn multidraw_from_e(list_of_list_of_coords: &E) {
     multidraw(&list_of_list_of_coords);
 }
 
-pub fn multidraw_stacked_from_e_to_file(list_of_list_of_coords: &E) {
+pub fn multidraw_stacked_from_e_to_file(list_of_list_of_coords: &E, path: &str) {
     let list_of_list_of_coords = collect_list_of_list_of_coords(list_of_list_of_coords);
-    // let img = super::draw::draw(&list_of_list_of_coords);
-    unimplemented!()
+    let img = super::draw::multidraw_stack(&list_of_list_of_coords);
+    img.save(path).unwrap();
 }
 
 pub fn draw_from_vec_to_file(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, path: &str) {
@@ -114,7 +114,7 @@ pub fn draw_from_vec_to_file(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, p
     img.save(path).unwrap();
 }
 
-pub fn multidraw_from_e_to_file(list_of_list_of_coords: &E, path_prefix: &str) {
+pub fn multidraw_from_e_to_files(list_of_list_of_coords: &E, path_prefix: &str) {
     let list_of_list_of_coords = collect_list_of_list_of_coords(list_of_list_of_coords);
     for (i, list_of_coords) in list_of_list_of_coords.iter().enumerate() {
         draw_from_vec_to_file(list_of_coords, &format!("{}-{}.png", path_prefix, i));
