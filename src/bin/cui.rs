@@ -59,6 +59,8 @@ fn run() {
 		);
 		let mut data = app::parser::Data::default();
 		let f = eval(&exp, &functions, false, &mut data);
+		let sum_count: usize = data.count.values().sum();
+		eprintln!("{}", sum_count);
 		let f = eval(&f, &functions, true, &mut data);
 		let sum_count: usize = data.count.values().sum();
 		eprintln!("{}", sum_count);
