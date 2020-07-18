@@ -11,3 +11,7 @@ hyper-tls = "*"
 http-body = "0.3.1"
 num = "*"
 futures = "*"
+rand = "*"
+
+[profile.release]
+debug = true

@@ -9,6 +9,7 @@ dependencies = [
  "hyper",
  "hyper-tls",
  "num",
+ "rand",
  "tokio",
 ]
 
