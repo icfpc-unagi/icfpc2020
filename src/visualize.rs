@@ -30,8 +30,8 @@ fn bigint_to_usize(x: &BigInt) -> usize {
     x.to_string().parse().unwrap()
 }
 
-pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) {
-    println!("----------");
+pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
+    println!("---------- {} ----------", name);
 
     if list_of_coords.len() == 0 {
         println!("(Empty)")
@@ -57,16 +57,66 @@ pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) {
             println!();
         }
     }
-    println!("----------");
+    println!("--------------------");
 }
 
-pub fn multidraw(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::BigInt)>>) {
-    for list_of_coords in list_of_list_of_coords {
-        draw(list_of_coords);
+/*
+pub fn multidraw_stacked(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::BigInt)>>) {
+    println!("---------- stacked ----------");
+
+    let min_x = list_of_list_of_coords.iter().map(|loc| loc.iter()).flatten().map(|c| &c.0).min();
+    let max_x = list_of_list_of_coords.iter().map(|loc| loc.iter()).flatten().map(|c| &c.0).max();
+    let min_y = list_of_list_of_coords.iter().map(|loc| loc.iter()).flatten().map(|c| &c.1).min();
+    let max_y = list_of_list_of_coords.iter().map(|loc| loc.iter()).flatten().map(|c| &c.1).max();
+
+    if min_x.is_some() {
+        println!("(Empty)")
+    } else {
+        let min_x = min_x.unwrap();
+        let max_x = max_x.unwrap();
+        let min_y = min_y.unwrap();
+        let max_y = max_y.unwrap();
+        let w = bigint_to_usize(&(max_x.clone() - min_x.clone())) + 1;
+        let h = bigint_to_usize(&(max_y.clone() - min_y.clone())) + 1;
     }
+
+        /*
+    let min_x = list_of_coords.iter().map(|c| c.0.clone()).min().unwrap();
+    let max_x = list_of_coords.iter().map(|c| c.0.clone()).max().unwrap();
+    let min_y = list_of_coords.iter().map(|c| c.1.clone()).min().unwrap();
+    let max_y = list_of_coords.iter().map(|c| c.1.clone()).max().unwrap();
+*/
+
+    println!("--------------------");
+}
+ */
+
+pub fn multidraw(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::BigInt)>>) {
+    for (i, list_of_coords) in list_of_list_of_coords.iter().enumerate() {
+        draw(list_of_coords, &format!("{}", i));
+    }
+    // multidraw_stacked(list_of_list_of_coords);
 }
 
 pub fn multidraw_from_e(list_of_list_of_coords: &E) {
     let list_of_list_of_coords = collect_list_of_list_of_coords(list_of_list_of_coords);
     multidraw(&list_of_list_of_coords);
+}
+
+pub fn multidraw_stacked_from_e_to_file(list_of_list_of_coords: &E) {
+    let list_of_list_of_coords = collect_list_of_list_of_coords(list_of_list_of_coords);
+    // let img = super::draw::draw(&list_of_list_of_coords);
+    unimplemented!()
+}
+
+pub fn draw_from_vec_to_file(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, path: &str) {
+    let img = super::draw::draw(list_of_coords);
+    img.save(path).unwrap();
+}
+
+pub fn multidraw_from_e_to_file(list_of_list_of_coords: &E, path_prefix: &str) {
+    let list_of_list_of_coords = collect_list_of_list_of_coords(list_of_list_of_coords);
+    for (i, list_of_coords) in list_of_list_of_coords.iter().enumerate() {
+        draw_from_vec_to_file(list_of_coords, &format!("{}-{}.png", path_prefix, i));
+    }
 }
