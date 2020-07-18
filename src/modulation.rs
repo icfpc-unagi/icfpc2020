@@ -33,7 +33,7 @@ impl From<&E> for Mod {
 				Box::new(Mod::from(a.as_ref())),
 				Box::new(Mod::from(b.as_ref())),
 			),
-			_ => panic!(),
+			_ => panic!("Failed to parse: {}", e),
 		}
 	}
 }
