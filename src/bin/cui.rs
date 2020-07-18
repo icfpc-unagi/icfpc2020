@@ -4,6 +4,17 @@ use app::parser::*;
 use app::sender::*;
 use std::rc::Rc;
 
+type E = app::parser::E;
+fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>) -> E {
+	let now = ::std::time::Instant::now();
+	let mut data = app::parser::Data::default();
+	let f = eval(&exp, &functions, false, &mut data);
+	let f = eval(&f, &functions, true, &mut data);
+	let dur = now.elapsed();
+	eprintln!("{:?}", dur);
+	f
+}
+
 fn run() {
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
@@ -26,7 +37,11 @@ fn run() {
 			(0, 0)
 		} else {
 			let mut line = String::new();
-			let _ = stdin.read_line(&mut line).unwrap();
+			let bytes = stdin.read_line(&mut line).unwrap();
+			if bytes == 0 {
+				eprintln!("EOF");
+				return;
+			}
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
 				let (prev_state, prev_data) = stack.pop().unwrap();
@@ -50,9 +65,7 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		let mut data = app::parser::Data::default();
-		let f = eval(&exp, &functions, false, &mut data);
-		let f = eval(&f, &functions, true, &mut data);
+		let f = eval1(&exp, &functions);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
 				if let E::Pair(data, _) = b.as_ref() {
@@ -81,9 +94,7 @@ fn run() {
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				let mut parser_data = app::parser::Data::default();
-				let f = eval(&exp, &functions, false, &mut parser_data);
-				let f = eval(&f, &functions, true, &mut parser_data);
+				let f = eval1(&exp, &functions);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {
 					if let E::Pair(a, b) = a.as_ref() {
 						if let E::Pair(data, _) = b.as_ref() {
