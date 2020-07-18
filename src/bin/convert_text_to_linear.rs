@@ -12,8 +12,7 @@ fn main() {
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let (exp, n) = parser::parse(&ss, 0);
 		assert_eq!(n, ss.len());
-		let f = parser::eval(&exp, &functions, false, &mut app::parser::Data::default());
-		let e = parser::eval(&f, &functions, true, &mut app::parser::Data::default());
+		let e = parser::eval(&exp, &functions, true, &mut app::parser::Data::default());
 		let result = modulate(&e);
 		println!("{}", result);
 	}
