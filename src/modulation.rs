@@ -111,10 +111,14 @@ fn test_modulate_mod() {
 	);
 	assert_eq!(modulate_mod(&Mod::Num(Zero::zero())), "010");
 	assert_eq!(modulate_mod(&Mod::Num(One::one())), "01100001");
+	eprintln!("{}", modulate_mod(&Mod::Pair(Box::new(Mod::Num(1.into())), Box::new(Mod::Nil))));
 	assert_eq!(
 		modulate_mod(&Mod::Num(BigInt::new(Sign::Minus, vec![16]))),
 		"1011000010000"
 	);
+	for i in -1000..1000 {
+		assert_eq!(demodulate_mod(&modulate_mod(&Mod::Num(i.into()))).0, Mod::Num(BigInt::from(i)));
+	}
 }
 
 #[test]
