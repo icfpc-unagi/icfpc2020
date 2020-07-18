@@ -464,3 +464,38 @@ impl<'a> Iterator for EIterator<'a> {
 		}
 	}
 }
+
+
+#[cfg(test)]
+mod tests {
+	use super::Data;
+	use crate::parser;
+
+	fn eval_single_func(line: &str) -> String {
+		let mut functions = std::collections::BTreeMap::new();
+		let ss = line.split_whitespace().collect::<Vec<_>>();
+		let name = "main".to_owned();
+		let (exp, n) = parser::parse(&ss[..], 0);
+		assert_eq!(n, ss.len());
+		functions.insert(name, exp);
+		let mut data = Data::default();
+		let f = parser::eval(&functions["main"], &functions, false, &mut data);
+		f.to_string()
+	}
+
+	#[test]
+	fn test_modem() {
+		let main_str = "ap ap cons ap ap add 0 1 ap ap add 2 3";
+		// without modem
+		{
+			let out = eval_single_func(&main_str);
+			assert_eq!(out, "<((add 0) 1), ((add 2) 3)>");
+		}
+		// with modem
+		{
+			let main_str2 = format!("ap modem {}", main_str);
+			let out2 = eval_single_func(&main_str2);
+			assert_eq!(out2, "<1, 5>");
+		}
+	}
+}
