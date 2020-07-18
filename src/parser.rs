@@ -2,12 +2,12 @@ use num::*;
 use std::collections::*;
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, PartialOrd)]
 pub enum E {
 	Ap(Rc<E>, Rc<E>),
-	Num(BigInt),
-	Pair(Rc<E>, Rc<E>),
 	Etc(String),
+	Pair(Rc<E>, Rc<E>),
+	Num(BigInt),
 	Cloned(Rc<E>, usize),
 }
 
