@@ -15,7 +15,7 @@ fn run() {
 		functions.insert(name, exp);
 	}
 	let f = parser::eval(&functions["galaxy"], &functions, false);
-	println!("ret: {}", parser::eval(&f, &functions, true));
+	println!("galaxy = {}", parser::eval(&f, &functions, true));
 }
 
 fn main() {
