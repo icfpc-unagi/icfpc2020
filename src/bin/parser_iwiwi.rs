@@ -33,7 +33,7 @@ fn run() {
         let x = if iter < x_array.len() { x_array[iter] } else { rng.gen_range(-20, 20) };
         let y = if iter < y_array.len() { y_array[iter] } else { rng.gen_range(-20, 20) };
         // let s = format!("ap ap cons {} {}", x, y);
-        let s = if x <= 70000 {format!("ap ap cons {} {}", x, y)}  else {format!("ap ap cons {} ap ap cons {} nil", x, y)};
+        let s = if y <= 70000 {format!("ap ap cons {} {}", x, y)}  else {format!("ap ap cons {} ap ap cons {} nil", x, y)};
 
         let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
         let exp = E::Ap(
@@ -69,11 +69,13 @@ fn run() {
             }
             eprintln!("{} {}", x, y);
             eprintln!("state: {}", state);
-            println!("modulated: {}", app::modulation::modulate(&data));
+            // println!("modulated: {}", app::modulation::modulate(&data));
         }
+        /*
         if flag {
             break;
         }
+         */
     }
     // let f = eval(&functions["hoge"], &functions, false);
     // let f = eval(&f, &functions, true);
