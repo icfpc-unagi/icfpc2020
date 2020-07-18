@@ -10,7 +10,7 @@ fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>) -> E {
 	let mut data = app::parser::Data::default();
 	let f = eval(&exp, &functions, true, &mut data);
 	let dur = now.elapsed();
-	eprintln!("{:?}", dur);
+	eprintln!("{:.6} sec", dur.as_secs_f64());
 	f
 }
 
