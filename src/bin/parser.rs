@@ -25,7 +25,9 @@ fn run() {
 	eprintln!("{}", state);
 	let mut rng = rand::thread_rng();
 	let mut last_flag = 0;
+	let mut data = app::parser::Data::default();
 	for iter in 0.. {
+		eprintln!("iter = {}: len = {}", iter, data.cache.len());
 		let x = rng.gen_range(-20, 20);
 		let y = rng.gen_range(-20, 20);
 		let s = if last_flag == 0 { "ap ap cons 1 ap ap cons 80000 nil".to_owned() } else { format!("ap ap cons {} {}", x, y) };
@@ -36,7 +38,6 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		let mut data = app::parser::Data::default();
 		let f = eval(&exp, &functions, true, &mut data);
 		// let f = eval(&exp, &functions, false, &mut data);
 		// let f = eval(&f, &functions, true, &mut data);
