@@ -10,3 +10,4 @@
 /.cache
 /vendor
 /rustfmt.toml
+/out
