@@ -25,7 +25,7 @@ fn main() {
 	if let E::Pair(_, x) = &result {
 		if let E::Pair(state, x) = x.as_ref() {
 			if let E::Pair(x, _) = x.as_ref() {
-				println!("state: {}", x);
+				println!("state: {}", state);
 				println!("ret: {}", x);
 				println!("state modulated: {}", modulate(&*state));
 				println!("ret modulated: {}", modulate(&*x));
