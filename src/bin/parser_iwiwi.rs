@@ -64,7 +64,7 @@ fn run() {
             if !flag {
                 println!("iteration {}", iter);
                 app::visualize::multidraw_from_e(&data);
-                app::visualize::multidraw_stacked_from_e_to_file_scale(&data, &format!("out/stacked-{}.png", iter), 8);
+                app::visualize::multidraw_stacked_from_e_to_file_scale(&data, &format!("out/stacked-{}.png", iter), 4);
                 app::visualize::multidraw_from_e_to_files(&data, &format!("out/separate-{}", iter));
             }
             eprintln!("{} {}", x, y);

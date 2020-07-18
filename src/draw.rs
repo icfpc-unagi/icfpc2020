@@ -50,6 +50,7 @@ pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(w, h, Rgb([255, 255, 255])));
 	draw_axes(&mut img, &offset, 10);
 	for i in 0..v.len() {
+		let i = v.len() - 1 - i; // overwrite in reverse order
 		let c = GRADIENT.eval_rational(i + 1, v.len() + 1);
 		draw_on(&mut img, &v[i], &offset, Rgba([c.r, c.g, c.b, 255]));
 	}
@@ -63,8 +64,13 @@ pub fn multidraw_gradient_scale(v: &Vec<Vec<(BigInt, BigInt)>>, scale: u32) -> D
 		h * scale,
 		Rgb([255, 255, 255]),
 	));
-	draw_axes(&mut img, &offset, 10 * scale);
+	draw_axes(
+		&mut img,
+		&(&offset.0 * scale, &offset.1 * scale),
+		10 * scale,
+	);
 	for i in 0..v.len() {
+		let i = v.len() - 1 - i; // overwrite in reverse order
 		let c = GRADIENT.eval_rational(i + 1, v.len() + 1);
 		draw_on_scale(&mut img, &v[i], &offset, Rgba([c.r, c.g, c.b, 255]), scale);
 	}
@@ -72,8 +78,8 @@ pub fn multidraw_gradient_scale(v: &Vec<Vec<(BigInt, BigInt)>>, scale: u32) -> D
 }
 
 fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt), step: u32) {
-	const AXES_COLOR: Rgba<u8> = Rgba([127, 127, 127, 255]);
-	const GRID_COLOR: Rgba<u8> = Rgba([63, 63, 63, 255]);
+	const AXES_COLOR: Rgba<u8> = Rgba([255, 0, 0, 255]);
+	const GRID_COLOR: Rgba<u8> = Rgba([127, 127, 127, 255]);
 	if let Some(ya) = offset.1.to_u32() {
 		for y in (ya % step..img.height()).step_by(step as usize) {
 			for x in 0..img.width() {
@@ -99,10 +105,10 @@ fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
 	);
 	(
 		(
-			(max_x - min_x).to_u32().unwrap() + 1,
-			(max_y - min_y).to_u32().unwrap() + 1,
+			(max_x - min_x).to_u32().unwrap() + 3,
+			(max_y - min_y).to_u32().unwrap() + 3,
 		),
-		(-min_x, -min_y),
+		(1 - min_x, 1 - min_y),
 	)
 }
 fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
@@ -134,10 +140,10 @@ fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
 	);
 	(
 		(
-			(max_x - min_x).to_u32().unwrap() + 1,
-			(max_y - min_y).to_u32().unwrap() + 1,
+			(max_x - min_x).to_u32().unwrap() + 3,
+			(max_y - min_y).to_u32().unwrap() + 3,
 		),
-		(-min_x, -min_y),
+		(1 - min_x, 1 - min_y),
 	)
 }
 
