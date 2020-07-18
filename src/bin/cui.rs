@@ -3,14 +3,12 @@ use std::io::prelude::*;
 use app::parser::*;
 use app::sender::*;
 use std::rc::Rc;
-use rand::prelude::*;
-use num::*;
 
 fn run() {
-	let stdin = std::io::stdin();
-	let stdin = stdin.lock();
+	let f = std::fs::File::open("data/galaxy.txt").unwrap();
+	let f = std::io::BufReader::new(f);
 	let mut functions = std::collections::BTreeMap::new();
-	for line in stdin.lines() {
+	for line in f.lines() {
 		let line = line.unwrap();
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let name = ss[0].to_owned();
@@ -18,27 +16,33 @@ fn run() {
 		assert_eq!(n, ss.len() - 2);
 		functions.insert(name, exp);
 	}
-	
 	let mut state = E::Etc("nil".to_owned());
-	eprintln!("{}", state);
-	let mut rng = rand::thread_rng();
-	let mut iter = 0;
-	let mut last_data = E::Etc("nil".to_owned());
-	loop {
-		let (x, y) = if iter > 15 {
-			let es = last_data.into_iter().nth(0).unwrap().into_iter().collect::<Vec<_>>();
-			let e = es[rng.gen_range(0, es.len())];
-			if let E::Pair(a, b) = e {
-				if let (E::Num(a), E::Num(b)) = (a.as_ref(), b.as_ref()) {
-					(a.to_i64().unwrap(), b.to_i64().unwrap())
-				} else {
-					panic!();
-				}
-			} else {
-				panic!();
-			}
+	let mut stack = vec![];
+	let stdin = std::io::stdin();
+	let mut stdin = stdin.lock();
+	let mut current_data = E::Num(0.into());
+	for iter in 0.. {
+		let (x, y) = if iter == 0 {
+			(0, 0)
 		} else {
-			(rng.gen_range(-20, 20), rng.gen_range(-20, 20))
+			let mut line = String::new();
+			let _ = stdin.read_line(&mut line).unwrap();
+			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
+			if ss.len() == 1 && ss[0] == "undo" {
+				let (prev_state, prev_data) = stack.pop().unwrap();
+				state = prev_state;
+				current_data = prev_data;
+				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				continue;
+			} else if ss.len() != 2 {
+				eprintln!("illegal input");
+				continue;
+			} else if let (Ok(x), Ok(y)) = (ss[0].parse(), ss[1].parse()) {
+				(x, y)
+			} else {
+				eprintln!("illegal input");
+				continue;
+			}
 		};
 		let s = format!("ap ap cons {} {}", x, y);
 		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
@@ -63,16 +67,11 @@ fn run() {
 			panic!();
 		};
 		if flag || state != new_state {
-			last_data = data.clone();
+			stack.push((state.clone(), current_data.clone()));
 			state = new_state;
+			current_data = data.clone();
 			eprintln!("flag = {}", flag);
-			eprintln!("{} {}", x, y);
 			eprintln!("state: {}", state);
-			if data.to_string().len() >= 30 {
-				eprintln!("iter: {}", iter);
-				app::visualize::multidraw_stacked_from_e_to_file(&data, &format!("../../ICFPC2020/wata_out/stacked-{}.png", iter));
-				iter += 1;
-			}
 			while flag {
 				eprintln!("send: {}", app::modulation::modulate(&data));
 				let resp = send(&app::modulation::modulate(&data));
@@ -101,15 +100,13 @@ fn run() {
 				flag = new_flag;
 				state = new_state;
 				data = new_data;
-				last_data = data.clone();
-				if data.to_string().len() >= 30 {
-					eprintln!("iter: {}", iter);
-					app::visualize::multidraw_stacked_from_e_to_file(&data, &format!("../../ICFPC2020/wata_out/stacked-{}.png", iter));
-					iter += 1;
-				}
+				current_data = data.clone();
 				eprintln!("flag = {}", flag);
 				eprintln!("state: {}", state);
 			}
+			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+		} else {
+			eprintln!("orz");
 		}
 	}
 }

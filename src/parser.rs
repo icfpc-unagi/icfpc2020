@@ -2,12 +2,12 @@ use num::*;
 use std::collections::*;
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, Eq, Debug, PartialOrd)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum E {
 	Ap(Rc<E>, Rc<E>),
-	Etc(String),
-	Pair(Rc<E>, Rc<E>),
 	Num(BigInt),
+	Pair(Rc<E>, Rc<E>),
+	Etc(String),
 	Cloned(Rc<E>, usize),
 }
 
@@ -32,6 +32,17 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 		(E::Num(a), i + 1)
 	} else {
 		(E::Etc(ss[i].to_owned()), i + 1)
+	}
+}
+
+impl Into<(BigInt, BigInt)> for &E {
+	fn into(self) -> (BigInt, BigInt) {
+		if let E::Pair(x, y) = self {
+			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
+				return (x.clone(), y.clone());
+			}
+		}
+		panic!("expected coords but got {:?}", self)
 	}
 }
 
@@ -63,30 +74,19 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 				}
 			}
 		}
-		_ => {
-			let e = eval_whnf(e, map, data);
-			// eval car and cdr of cons if `eval_tuple`
-			if let (true, E::Pair(a, b)) = (eval_tuple, &e) {
-				E::Pair(
-					eval(a.as_ref(), map, eval_tuple, data).into(),
-					eval(b.as_ref(), map, eval_tuple, data).into(),
-				)
-			} else {
-				e
-			}
-		}
-	}
-}
-
-fn eval_whnf(e: &E, map: &BTreeMap<String, E>, data: &mut Data) -> E {
-	let eval_tuple = false;
-	match e {
 		E::Ap(x1, y1) => {
 			let x1 = eval(&x1, map, eval_tuple, data);
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Etc(name) if name == "cons" => {
-						E::Pair(y2.clone(), y1.clone().into())
+						if eval_tuple {
+							E::Pair(
+								eval(y2, map, eval_tuple, data).into(),
+								eval(y1, map, eval_tuple, data).into(),
+							)
+						} else {
+							E::Pair(y2.clone(), y1.clone().into())
+						}
 					}
 					E::Etc(name) if name == "eq" => {
 						let y1 = eval(&y1, map, eval_tuple, data);
@@ -241,11 +241,6 @@ fn eval_whnf(e: &E, map: &BTreeMap<String, E>, data: &mut Data) -> E {
 				}
 				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple, data),
 				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
-				E::Etc(name) if name == "modem" => {
-					let y1 = eval(y1, map, true, data);
-					y1.assert_mod();
-					y1
-				}
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
@@ -257,6 +252,10 @@ fn eval_whnf(e: &E, map: &BTreeMap<String, E>, data: &mut Data) -> E {
 				panic!("no such function: {}", name)
 			}
 		}
+		E::Pair(a, b) if eval_tuple => E::Pair(
+			eval(a, map, eval_tuple, data).into(),
+			eval(b, map, eval_tuple, data).into(),
+		),
 		e => e.clone(),
 	}
 }
@@ -421,24 +420,6 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 	panic!("Unexpected literal: {}", s);
 }
 
-impl E {
-	fn assert_mod(&self) {
-		match self {
-			E::Etc(x) if x == "nil" => {
-				return;
-			}
-			E::Num(_) => {
-				return;
-			}
-			E::Pair(a, b) => {
-				a.assert_mod();
-				b.assert_mod();
-			}
-			_ => panic!(),
-		}
-	}
-}
-
 // iterate as list
 impl<'a> IntoIterator for &'a E {
 	type Item = &'a E;
@@ -461,52 +442,6 @@ impl<'a> Iterator for EIterator<'a> {
 				Some(head.as_ref())
 			}
 			_ => panic!(),
-		}
-	}
-}
-
-// into coords
-impl Into<(BigInt, BigInt)> for &E {
-	fn into(self) -> (BigInt, BigInt) {
-		if let E::Pair(x, y) = self {
-			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
-				return (x.clone(), y.clone());
-			}
-		}
-		panic!("expected coords but got {:?}", self)
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::Data;
-	use crate::parser;
-
-	fn eval_single_func(line: &str) -> String {
-		let mut functions = std::collections::BTreeMap::new();
-		let ss = line.split_whitespace().collect::<Vec<_>>();
-		let name = "main".to_owned();
-		let (exp, n) = parser::parse(&ss[..], 0);
-		assert_eq!(n, ss.len());
-		functions.insert(name, exp);
-		let mut data = Data::default();
-		let f = parser::eval(&functions["main"], &functions, false, &mut data);
-		f.to_string()
-	}
-
-	#[test]
-	fn test_modem() {
-		let main_str = "ap ap cons ap ap add 0 1 ap ap add 2 3";
-		// without modem
-		{
-			let out = eval_single_func(&main_str);
-			assert_eq!(out, "<((add 0) 1), ((add 2) 3)>");
-		}
-		// with modem
-		{
-			let main_str2 = format!("ap modem {}", main_str);
-			let out2 = eval_single_func(&main_str2);
-			assert_eq!(out2, "<1, 5>");
 		}
 	}
 }
