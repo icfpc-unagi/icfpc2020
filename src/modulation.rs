@@ -29,7 +29,7 @@ impl From<&E> for Mod {
 		match e {
 			E::Etc(x) if x == "nil" => Mod::Nil,
 			E::Num(i) => Mod::Num(i.clone()),
-			E::Pair(a, b) => Mod::Pair(
+			E::Pair(a, b) | E::Ap(a, b) => Mod::Pair(
 				Box::new(Mod::from(a.as_ref())),
 				Box::new(Mod::from(b.as_ref())),
 			),
