@@ -16,12 +16,13 @@ fn main() {
 		assert_eq!(n, ss.len() - 2);
 		functions.insert(name, exp);
 	}
+	let mut data = app::parser::Data::default();
 	for id in functions.keys() {
-		let f = parser::eval(&functions[id], &functions, false, &mut app::parser::Data::default());
+		let f = parser::eval(&functions[id], &functions, false, &mut data);
 		println!("{}: {}", id, f);
 	}
-	let f = parser::eval(&functions["main"], &functions, false, &mut app::parser::Data::default());
-	let result = parser::eval(&f, &functions, true, &mut app::parser::Data::default());
+	let f = parser::eval(&functions["main"], &functions, false, &mut data);
+	let result = parser::eval(&f, &functions, true, &mut data);
 	if let E::Pair(_, x) = &result {
 		if let E::Pair(state, x) = x.as_ref() {
 			if let E::Pair(x, _) = x.as_ref() {
