@@ -21,9 +21,8 @@ fn main() {
 		let f = parser::eval(&functions[id], &functions, false, &mut data);
 		println!("{}: {}", id, f);
 	}
-	let f = parser::eval(&functions["main"], &functions, false, &mut data);
-	let result = parser::eval(&f, &functions, true, &mut data);
-	if let E::Pair(_, x) = &result {
+	let f = parser::eval(&functions["main"], &functions, true, &mut data);
+	if let E::Pair(_, x) = &f {
 		if let E::Pair(state, x) = x.as_ref() {
 			if let E::Pair(x, _) = x.as_ref() {
 				println!("state: {}", state);

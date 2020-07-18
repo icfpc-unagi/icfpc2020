@@ -32,8 +32,7 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		let f = eval(&exp, &functions, false, &mut data);
-		let f = eval(&f, &functions, true, &mut data);
+		let f = eval(&exp, &functions, true, &mut data);
 		// eprintln!("{}", f);
 		// for (id, c) in data.count {
 		// 	eprintln!("{}: {}", id, c);

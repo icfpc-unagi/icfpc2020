@@ -63,19 +63,30 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 				}
 			}
 		}
+		_ => {
+			let e = eval_whnf(e, map, data);
+			// eval car and cdr of cons if `eval_tuple`
+			if let (true, E::Pair(a, b)) = (eval_tuple, &e) {
+				E::Pair(
+					eval(a.as_ref(), map, eval_tuple, data).into(),
+					eval(b.as_ref(), map, eval_tuple, data).into(),
+				)
+			} else {
+				e
+			}
+		}
+	}
+}
+
+fn eval_whnf(e: &E, map: &BTreeMap<String, E>, data: &mut Data) -> E {
+	let eval_tuple = false;
+	match e {
 		E::Ap(x1, y1) => {
 			let x1 = eval(&x1, map, eval_tuple, data);
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Etc(name) if name == "cons" => {
-						if eval_tuple {
-							E::Pair(
-								eval(y2, map, eval_tuple, data).into(),
-								eval(y1, map, eval_tuple, data).into(),
-							)
-						} else {
-							E::Pair(y2.clone(), y1.clone().into())
-						}
+						E::Pair(y2.clone(), y1.clone().into())
 					}
 					E::Etc(name) if name == "eq" => {
 						let y1 = eval(&y1, map, eval_tuple, data);
@@ -230,6 +241,11 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 				}
 				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple, data),
 				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
+				E::Etc(name) if name == "modem" => {
+					let y1 = eval(y1, map, true, data);
+					// y1.assert_mod();
+					y1
+				}
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
@@ -241,10 +257,6 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 				panic!("no such function: {}", name)
 			}
 		}
-		E::Pair(a, b) if eval_tuple => E::Pair(
-			eval(a, map, eval_tuple, data).into(),
-			eval(b, map, eval_tuple, data).into(),
-		),
 		e => e.clone(),
 	}
 }
