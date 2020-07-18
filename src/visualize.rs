@@ -1,33 +1,21 @@
 use super::parser::*;
+use num::cast::ToPrimitive;
 use num::BigInt;
 
 fn collect_coords(e: &E) -> (num::BigInt, num::BigInt) {
-    if let E::Pair(a, b) = e {
-        if let E::Num(a) = a.as_ref() {
-            if let E::Num(b) = b.as_ref() {
-               return (a.clone(), b.clone());
-            }
-        }
-    }
-    panic!("Coords expected: {}", e);
+    e.into()
 }
 
 fn collect_list_of_coords(e: &E) -> Vec<(num::BigInt, num::BigInt)> {
-    if let Some(list_of_e) = get_list(e) {
-        return list_of_e.iter().map(|rce| collect_coords(rce.as_ref())).collect();
-    }
-    panic!("List of coords expected: {}", e);
+    e.into_iter().map(|e| collect_coords(e)).collect()
 }
 
 fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(num::BigInt, num::BigInt)>> {
-    if let Some(list_of_e) = get_list(e) {
-        return list_of_e.iter().map(|rce| collect_list_of_coords(rce.as_ref())).collect();
-    }
-    panic!("List of list of coords expected: {}", e);
+    e.into_iter().map(|e| collect_list_of_coords(e)).collect()
 }
 
 fn bigint_to_usize(x: &BigInt) -> usize {
-    x.to_string().parse().unwrap()
+    x.to_usize().unwrap()
 }
 
 pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
@@ -125,7 +113,6 @@ pub fn multidraw_from_e_to_files(list_of_list_of_coords: &E, path_prefix: &str) 
         }
     }
 }
-
 
 /*
 

@@ -465,6 +465,17 @@ impl<'a> Iterator for EIterator<'a> {
 	}
 }
 
+// into coords
+impl Into<(BigInt, BigInt)> for &E {
+	fn into(self) -> (BigInt, BigInt) {
+		if let E::Pair(x, y) = self {
+			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
+				return (x.clone(), y.clone());
+			}
+		}
+		panic!("expected coords but got {:?}", self)
+	}
+}
 
 #[cfg(test)]
 mod tests {

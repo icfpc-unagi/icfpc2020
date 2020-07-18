@@ -8,15 +8,7 @@ const GRADIENT: colorous::Gradient = colorous::TURBO;
 pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
 	let mut out = Vec::new();
 	for i in e {
-		if let E::Pair(x, y) = i {
-			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
-				out.push((x.clone(), y.clone()));
-			} else {
-				eprintln!("expected Pair(Num, Num) but got {:?}", i);
-			}
-		} else {
-			eprintln!("expected Pair but got {:?}", i);
-		}
+		out.push(i.into());
 	}
 	out
 }
