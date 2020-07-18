@@ -30,12 +30,17 @@ fn run() {
 		let y = rng.gen_range(-20, 20);
 		let s = if last_flag == 0 { "ap ap cons 1 ap ap cons 80000 nil".to_owned() } else { format!("ap ap cons {} {}", x, y) };
 		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
+		// eprintln!("{}", last_flag);
+		eprintln!("{}; {}, {}", state, x, y);
 		let exp = E::Ap(
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
 		let mut data = app::parser::Data::default();
 		let f = eval(&exp, &functions, true, &mut data);
+		// let f = eval(&exp, &functions, false, &mut data);
+		// let f = eval(&f, &functions, true, &mut data);
+
 		// eprintln!("{}", f);
 		// for (id, c) in data.count {
 		// 	eprintln!("{}: {}", id, c);

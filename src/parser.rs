@@ -423,6 +423,7 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 
 impl E {
 	fn assert_mod(&self) {
+		// eprintln!("// assert_mod: {}", self);
 		match self {
 			E::Etc(x) if x == "nil" => {
 				return;
