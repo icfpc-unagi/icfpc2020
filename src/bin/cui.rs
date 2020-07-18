@@ -22,9 +22,6 @@ fn run() {
 	let mut state = String::new();
 	init_state.read_to_string(&mut state).expect("ini_state read error");
 	let mut state = parser::parse_lisp(&state).0;
-	//eprintln!("state: {}", state);
-	//let mut state = parser::to_text(&r.0);
-	//let mut state = E::Etc("nil".to_owned());
 
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
