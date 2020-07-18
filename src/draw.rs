@@ -59,6 +59,7 @@ pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 // overwrite with gradient colormap
 pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
+	eprintln!("range: {},{}+{},{}", w, h, &offset.0, &offset.1);
 	let mut img = DynamicImage::new_rgb8(w, h);
 	draw_axes(&mut img, &offset);
 	for i in 0..v.len() {
@@ -86,7 +87,7 @@ fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt)) {
 }
 
 fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
-	let (min_x, min_y, max_x, max_y) = (
+	let (min_x, max_x, min_y, max_y) = (
 		v.iter().map(|c| &c.0).min().unwrap(),
 		v.iter().map(|c| &c.0).max().unwrap(),
 		v.iter().map(|c| &c.1).min().unwrap(),
@@ -101,7 +102,7 @@ fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
 	)
 }
 fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
-	let (min_x, min_y, max_x, max_y) = (
+	let (min_x, max_x, min_y, max_y) = (
 		vv.iter()
 			.map(|loc| loc.iter())
 			.flatten()
@@ -145,35 +146,34 @@ fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
 	for dot in dots {
 		if let Some(x) = (&dot.0 + &offset.0).to_u32() {
 			if let Some(y) = (&dot.1 + &offset.1).to_u32() {
-				// if x < img.width() && y < img.height() {
+				// eprintln!("{},{}+{},{}", x, y, &offset.0, &offset.1);
 				img.put_pixel(x, y, px);
-				// }
 			}
 		}
 	}
 }
 
-// #[test]
-// fn test_draw() {
-// 	let img = draw(&bigvecs(&[(1, 2), (-1, -1)]));
-// 	assert_eq!(img.get_pixel(0, 0), &Luma::from([0]));
-// 	assert_eq!(img.get_pixel(1, 2), &Luma::from([255]));
-// }
+#[test]
+fn test_draw() {
+	let img = draw(&bigvecs(&[(1, 2), (-1, -1)]));
+	assert_eq!(img.get_pixel(1, 1), Rgba([0, 0, 0, 255]));
+	assert_eq!(img.get_pixel(2, 3), Rgba([255, 255, 255, 255]));
+}
 
-// #[test]
-// #[ignore]
-// fn test_draw_save() {
-// 	let img = draw(&bigvecs(&[(1, 2), (-1, -1), (10, 10)]));
-// 	let tmp = std::env::temp_dir().join("test_draw.png");
-// 	img.save(&tmp).unwrap();
-// 	std::fs::remove_file(&tmp).unwrap();
-// }
+#[test]
+#[ignore]
+fn test_draw_save() {
+	let img = draw(&bigvecs(&[(1, 2), (-1, -1), (10, 10)]));
+	let tmp = std::env::temp_dir().join("test_draw.png");
+	img.save(&tmp).unwrap();
+	std::fs::remove_file(&tmp).unwrap();
+}
 
-// #[cfg(test)]
-// fn bigvecs(v: &[(i32, i32)]) -> Vec<(BigInt, BigInt)> {
-// 	v.iter()
-// 		.map(|(x, y)| (BigInt::from(*x), BigInt::from(*y)))
-// 		.collect()
-// }
+#[cfg(test)]
+fn bigvecs(v: &[(i32, i32)]) -> Vec<(BigInt, BigInt)> {
+	v.iter()
+		.map(|(x, y)| (BigInt::from(*x), BigInt::from(*y)))
+		.collect()
+}
 
 // cargo run --release --bin parser_iwiwi < ~/Dropbox/ICFPC2020/galaxy.txt
