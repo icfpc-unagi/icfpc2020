@@ -150,6 +150,20 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 					map,
 					eval_tuple,
 				),
+				E::Etc(name) if name == "inc" => {
+					if let E::Num(a) = eval(y1, map, eval_tuple) {
+						E::Num(a + 1)
+					} else {
+						panic!();
+					}
+				}
+				E::Etc(name) if name == "dec" => {
+					if let E::Num(a) = eval(y1, map, eval_tuple) {
+						E::Num(a - 1)
+					} else {
+						panic!();
+					}
+				}
 				E::Etc(name) if name == "neg" => {
 					if let E::Num(a) = eval(y1, map, eval_tuple) {
 						E::Num(-a)
