@@ -207,8 +207,7 @@ test_message 'galaxy = ap cdr ap ap cons x0 x1' 'galaxy = x1'
 
 
 # #28. Nil (Empty List)
-# 気になる
-# test_message 'galaxy = ap nil x0' 'galaxy = t'
+test_message 'galaxy = ap nil x0' 'galaxy = t'
 
 
 # #29. Is Nil (Is Empty List)

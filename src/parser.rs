@@ -212,6 +212,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 					}
 				}
 				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple),
+				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
