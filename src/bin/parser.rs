@@ -53,6 +53,7 @@ fn run() {
 		};
 		if flag || state.to_string() == "[]" || (state.to_string().len(), state.to_string()) < (new_state.to_string().len(), new_state.to_string()) {
 			state = new_state;
+			app::visualize::multidraw_from_e(&data);
 			eprintln!("{} {}", x, y);
 			eprintln!("state: {}", state);
 			println!("modulated: {}", app::modulation::modulate(&data));
@@ -64,7 +65,6 @@ fn run() {
 	// let f = eval(&functions["hoge"], &functions, false);
 	// let f = eval(&f, &functions, true);
 	// println!("ret: {}", f);
-
 	// let g = eval(&functions[":1108"], &functions);
 	// let g = eval(&functions["galaxy"], &functions);
 	// println!("{}", g);
