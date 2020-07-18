@@ -39,17 +39,28 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 pub struct Data {
 	pub count: BTreeMap<String, usize>,
 	pub cache: Vec<Option<E>>,
+	pub cache2: Vec<Option<E>>,
 }
 
 pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data) -> E {
 	match e {
 		E::Cloned(a, id) => {
-			if let Some(ref b) = data.cache[*id] {
-				b.clone()
+			if !eval_tuple {
+				if let Some(ref b) = data.cache[*id] {
+					b.clone()
+				} else {
+					let b = eval(a.as_ref(), map, eval_tuple, data);
+					data.cache[*id] = Some(b.clone());
+					b
+				}
 			} else {
-				let b = eval(a.as_ref(), map, eval_tuple, data);
-				data.cache[*id] = Some(b.clone());
-				b
+				if let Some(ref b) = data.cache2[*id] {
+					b.clone()
+				} else {
+					let b = eval(a.as_ref(), map, eval_tuple, data);
+					data.cache2[*id] = Some(b.clone());
+					b
+				}
 			}
 		}
 		E::Ap(x1, y1) => {
@@ -136,6 +147,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 						E::Etc(name) if name == "s" => {
 							let id = data.cache.len();
 							data.cache.push(None);
+							data.cache2.push(None);
 							eval(
 								&E::Ap(
 									Rc::new(E::Ap(y3.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
@@ -395,4 +407,30 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 		);
 	}
 	panic!("Unexpected literal: {}", s);
+}
+
+// iterate as list
+impl<'a> IntoIterator for &'a E {
+	type Item = &'a E;
+	type IntoIter = EIterator<'a>;
+	fn into_iter(self) -> Self::IntoIter {
+		EIterator(&self)
+	}
+}
+
+#[derive(Debug)]
+pub struct EIterator<'a>(&'a E);
+
+impl<'a> Iterator for EIterator<'a> {
+	type Item = &'a E;
+	fn next(&mut self) -> Option<Self::Item> {
+		match &self.0 {
+			E::Etc(x) if x == "nil" => None,
+			E::Pair(head, tail) => {
+				self.0 = tail.as_ref();
+				Some(head.as_ref())
+			}
+			_ => panic!(),
+		}
+	}
 }

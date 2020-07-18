@@ -11,3 +11,8 @@ hyper-tls = "*"
 http-body = "0.3.1"
 num = "*"
 futures = "*"
+rand = "*"
+image = "*"
+
+[profile.release]
+debug = true
