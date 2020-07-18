@@ -4,6 +4,8 @@ use app::parser::*;
 use app::sender::*;
 use std::rc::Rc;
 
+use app::*;
+
 fn run() {
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
@@ -16,7 +18,14 @@ fn run() {
 		assert_eq!(n, ss.len() - 2);
 		functions.insert(name, exp);
 	}
-	let mut state = E::Etc("nil".to_owned());
+	let mut init_state = std::fs::File::open("data/init_state.txt").unwrap();
+	let mut state = String::new();
+	init_state.read_to_string(&mut state).expect("ini_state read error");
+	let mut state = parser::parse_lisp(&state).0;
+	//eprintln!("state: {}", state);
+	//let mut state = parser::to_text(&r.0);
+	//let mut state = E::Etc("nil".to_owned());
+
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
 	let mut stdin = stdin.lock();
@@ -66,7 +75,7 @@ fn run() {
 		} else {
 			panic!();
 		};
-		if flag || state != new_state {
+		if flag || state != new_state || iter == 0 {
 			stack.push((state.clone(), current_data.clone()));
 			state = new_state;
 			current_data = data.clone();
