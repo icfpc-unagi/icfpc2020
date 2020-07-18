@@ -77,11 +77,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 									E::Etc("f".to_owned())
 								}
 							}
-							_ => {
-								eprintln!("y1 = {}", y1);
-								eprintln!("y2 = {}", y2);
-								panic!();
-							}
+							_ => panic!("eq with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "t" => eval(&y2, map, eval_tuple, data),
@@ -91,9 +87,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 						let y2 = eval(&y2, map, eval_tuple, data);
 						match (y1, y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y1 + y2),
-							_ => {
-								panic!();
-							}
+							(y1, y2) => panic!("add with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "mul" => {
@@ -101,11 +95,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 						let y2 = eval(&y2, map, eval_tuple, data);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y1 * y2),
-							_ => {
-								eprintln!("y1 = {}", y1);
-								eprintln!("y2 = {}", y2);
-								panic!();
-							}
+							_ => panic!("mul with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "div" => {
@@ -113,11 +103,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 						let y2 = eval(&y2, map, eval_tuple, data);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y2 / y1),
-							_ => {
-								eprintln!("y1 = {}", y1);
-								eprintln!("y2 = {}", y2);
-								panic!();
-							}
+							_ => panic!("div with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "lt" => {
@@ -131,11 +117,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 									E::Etc("f".to_owned())
 								}
 							}
-							_ => {
-								eprintln!("y1 = {}", y1);
-								eprintln!("y2 = {}", y2);
-								panic!();
-							}
+							_ => panic!("lt with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Ap(x3, y3) => match x3.as_ref() {
@@ -172,7 +154,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 									eval(y1, map, eval_tuple, data)
 								}
 							} else {
-								panic!()
+								panic!("if0 with {}, {} and {} is invalid", y3, y2, y1)
 							}
 						}
 						_ => E::Ap(Rc::new(x1), y1.clone()),
@@ -189,35 +171,35 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
 						E::Num(a + 1)
 					} else {
-						panic!();
+						panic!("inc with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "dec" => {
 					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
 						E::Num(a - 1)
 					} else {
-						panic!();
+						panic!("dec with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "neg" => {
 					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
 						E::Num(-a)
 					} else {
-						panic!();
+						panic!("neg with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "car" => {
 					if let E::Pair(a, _) = eval(y1, map, eval_tuple, data) {
 						eval(&a, map, eval_tuple, data)
 					} else {
-						panic!();
+						panic!("car with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "cdr" => {
 					if let E::Pair(_, a) = eval(y1, map, eval_tuple, data) {
 						eval(&a, map, eval_tuple, data)
 					} else {
-						panic!();
+						panic!("cdr with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "isnil" => {
@@ -231,8 +213,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 					} else if let E::Pair(_, _) = y1 {
 						E::Etc("f".to_owned())
 					} else {
-						eprintln!("y1 = {}", y1);
-						panic!();
+						panic!("isnil with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple, data),
@@ -242,7 +223,11 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 		}
 		E::Etc(name) if name.starts_with(":") => {
 			*data.count.entry(name.clone()).or_insert(0) += 1;
-			eval(&map[name], map, eval_tuple, data)
+			if map.contains_key(name) {
+				eval(&map[name], map, eval_tuple, data)
+			} else {
+				panic!("no such function: {}", name)
+			}
 		}
 		E::Pair(a, b) if eval_tuple => E::Pair(
 			eval(a, map, eval_tuple, data).into(),
