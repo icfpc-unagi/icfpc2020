@@ -328,6 +328,87 @@ impl std::fmt::Display for E {
 	}
 }
 
+fn consume_space(s: &str) -> &str {
+	return s.trim_start_matches(char::is_whitespace);
+}
+
+pub fn to_text(e: &E) -> String {
+	match e {
+		E::Ap(a, b) => format!("ap {} {}", to_text(a), to_text(b)),
+		E::Cloned(a, _) => to_text(a),
+		E::Num(a) => format!("{}", a),
+		E::Pair(a, b) => format!("ap {} {}", to_text(a), to_text(b)),
+		E::Etc(name) => name.to_owned(),
+	}
+}
+
+pub fn parse_lisp(s: &str) -> (E, &str) {
+	let mut s = consume_space(s);
+	if s.starts_with("(") {
+		let r1 = parse_lisp(&s[1..]);
+		s = consume_space(r1.1);
+		if s.starts_with(",") {
+			s = &s[1..];
+		}
+		let r2 = parse_lisp(s);
+		s = consume_space(r2.1);
+		if !s.starts_with(")") {
+			panic!("')' is expected, but {}", s);
+		}
+		return (E::Ap(Rc::new(r1.0), Rc::new(r2.0)), &s[1..]);
+	}
+	if s.starts_with("<") {
+		let r1 = parse_lisp(&s[1..]);
+		s = consume_space(r1.1);
+		if s.starts_with(",") {
+			s = &s[1..];
+		}
+		let r2 = parse_lisp(s);
+		s = consume_space(r2.1);
+		if !s.starts_with(">") {
+			panic!("'>' is expected, but {}", s);
+		}
+		return (E::Pair(Rc::new(r1.0), Rc::new(r2.0)), &s[1..]);
+	}
+	if s.starts_with("[") {
+		s = &s[1..];
+		let mut es = Vec::new();
+		while !s.is_empty() {
+			s = consume_space(s);
+			if s.starts_with("]") {
+				let mut ee = E::Etc("nil".to_owned());
+				es.reverse();
+				for e in es {
+					ee = E::Pair(Rc::new(e), Rc::new(ee));
+				}
+				return (ee, &s[1..]);
+			}
+			let r = parse_lisp(&s);
+			es.push(r.0);
+			s = consume_space(r.1);
+			if s.starts_with(",") {
+				s = &s[1..];
+			}
+		}
+		panic!("']' is missing");
+	}
+	let p = match s.find(|c: char| !c.is_ascii_alphanumeric() && c != '-' && c != '+' && c != ':') {
+		Some(p) => p,
+		_ => s.len(),
+	};
+	if p != 0 {
+		return (
+			if let Ok(a) = s[..p].parse::<BigInt>() {
+				E::Num(a)
+			} else {
+				E::Etc(s[..p].to_owned())
+			},
+			&s[p..],
+		);
+	}
+	panic!("Unexpected literal: {}", s);
+}
+
 // iterate as list
 impl<'a> IntoIterator for &'a E {
 	type Item = &'a E;

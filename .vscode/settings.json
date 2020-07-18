@@ -2,5 +2,6 @@
     "files.watcherExclude": {
         "**/.cache/**": true,
         "**/vendor/**": true
-    }
+    },
+    "editor.insertSpaces": false
 }
