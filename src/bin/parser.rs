@@ -54,6 +54,8 @@ fn run() {
             println!("flag: {}", flag);
             if let E::Pair(a, b) = a.as_ref() {
                 if let E::Pair(data, _) = b.as_ref() {
+                    app::visualize::multidraw_from_e(data.as_ref());
+
                     println!("modulated: {}", app::modulation::modulate(&*data));
                 } else {
                     panic!();
