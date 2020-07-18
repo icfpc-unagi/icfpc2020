@@ -149,7 +149,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 									eval(y1, map, eval_tuple)
 								}
 							} else {
-								eval(y1, map, eval_tuple)
+								panic!()
 							}
 						}
 						_ => E::Ap(Rc::new(x1), y1.clone()),
