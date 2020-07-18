@@ -8,8 +8,7 @@ type E = app::parser::E;
 fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>) -> E {
 	let now = ::std::time::Instant::now();
 	let mut data = app::parser::Data::default();
-	let f = eval(&exp, &functions, false, &mut data);
-	let f = eval(&f, &functions, true, &mut data);
+	let f = eval(&exp, &functions, true, &mut data);
 	let dur = now.elapsed();
 	eprintln!("{:?}", dur);
 	f
