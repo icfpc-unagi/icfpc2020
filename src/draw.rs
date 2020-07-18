@@ -9,14 +9,10 @@ pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
 	let mut out = Vec::new();
 	for i in e {
 		if let E::Pair(x, y) = i {
-			if let E::Num(x) = x.as_ref() {
-				if let E::Num(y) = y.as_ref() {
-					out.push((x.clone(), y.clone()));
-				} else {
-					eprintln!("expected Num but got {:?}", y.as_ref());
-				}
+			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
+				out.push((x.clone(), y.clone()));
 			} else {
-				eprintln!("expected Num but got {:?}", x.as_ref());
+				eprintln!("expected Pair(Num, Num) but got {:?}", i);
 			}
 		} else {
 			eprintln!("expected Pair but got {:?}", i);
@@ -59,11 +55,10 @@ pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 // overwrite with gradient colormap
 pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
-	eprintln!("range: {},{}+{},{}", w, h, &offset.0, &offset.1);
-	let mut img = DynamicImage::new_rgb8(w, h);
+	let mut img = DynamicImage::new_rgba8(w, h);
 	draw_axes(&mut img, &offset);
 	for i in 0..v.len() {
-		let c = GRADIENT.eval_rational(i, 255);
+		let c = GRADIENT.eval_rational(i + 1, v.len() + 1);
 		draw_on(&mut img, &v[i], &offset, Rgba([c.r, c.g, c.b, 255]));
 	}
 	img
@@ -73,14 +68,14 @@ fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt)) {
 	if let Some(y) = offset.1.to_u32() {
 		if y < img.height() {
 			for x in 0..img.width() {
-				img.put_pixel(x, y, Rgba([64, 64, 64, 255]));
+				img.put_pixel(x, y, Rgba([127, 127, 127, 255]));
 			}
 		}
 	}
 	if let Some(x) = offset.0.to_u32() {
 		if x < img.width() {
 			for y in 0..img.height() {
-				img.put_pixel(x, y, Rgba([64, 64, 64, 255]));
+				img.put_pixel(x, y, Rgba([127, 127, 127, 255]));
 			}
 		}
 	}
@@ -144,11 +139,8 @@ fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
 	px: Rgba<u8>,
 ) {
 	for dot in dots {
-		if let Some(x) = (&dot.0 + &offset.0).to_u32() {
-			if let Some(y) = (&dot.1 + &offset.1).to_u32() {
-				// eprintln!("{},{}+{},{}", x, y, &offset.0, &offset.1);
-				img.put_pixel(x, y, px);
-			}
+		if let (Some(x), Some(y)) = ((&dot.0 + &offset.0).to_u32(), (&dot.1 + &offset.1).to_u32()) {
+			img.put_pixel(x, y, px);
 		}
 	}
 }
