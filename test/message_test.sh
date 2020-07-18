@@ -25,20 +25,26 @@ test_message() {
 
 
 # #5. Successor
-# TODO(imos): inc is not implemented.
-# test_message 'galaxy = ap inc 0' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap inc 1' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap inc 100' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap inc -1' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap inc -100' 'galaxy = ((x0 x2) x1)'
+test_message 'galaxy = ap inc 0' 'galaxy = 1'
+test_message 'galaxy = ap inc 1' 'galaxy = 2'
+test_message 'galaxy = ap inc 2' 'galaxy = 3'
+test_message 'galaxy = ap inc 3' 'galaxy = 4'
+test_message 'galaxy = ap inc 300' 'galaxy = 301'
+test_message 'galaxy = ap inc 301' 'galaxy = 302'
+test_message 'galaxy = ap inc -1' 'galaxy = 0'
+test_message 'galaxy = ap inc -2' 'galaxy = -1'
+test_message 'galaxy = ap inc -3' 'galaxy = -2'
 
 
 # #6. Predecessor
-# test_message 'galaxy = ap dec 0' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap dec 1' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap dec 100' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap dec -1' 'galaxy = ((x0 x2) x1)'
-# test_message 'galaxy = ap dec -100' 'galaxy = ((x0 x2) x1)'
+test_message 'galaxy = ap dec 1' 'galaxy = 0'
+test_message 'galaxy = ap dec 2' 'galaxy = 1'
+test_message 'galaxy = ap dec 3' 'galaxy = 2'
+test_message 'galaxy = ap dec 4' 'galaxy = 3'
+test_message 'galaxy = ap dec 1024' 'galaxy = 1023'
+test_message 'galaxy = ap dec 0' 'galaxy = -1'
+test_message 'galaxy = ap dec -1' 'galaxy = -2'
+test_message 'galaxy = ap dec -2' 'galaxy = -3'
 
 
 # #7. Sum
@@ -136,8 +142,8 @@ test_message 'galaxy = ap neg -2' 'galaxy = 2'
 
 
 # #17. Function Application
-# test_message 'galaxy = ap inc ap inc 0' 'galaxy = 2'
-# test_message 'galaxy = ap inc ap inc ap inc 0' 'galaxy = 3'
+test_message 'galaxy = ap inc ap inc 0' 'galaxy = 2'
+test_message 'galaxy = ap inc ap inc ap inc 0' 'galaxy = 3'
 # test_message 'galaxy = ap inc ap dec x0' 'galaxy = x0'
 # test_message 'galaxy = ap dec ap inc x0' 'galaxy = x0'
 # test_message 'galaxy = ap dec ap ap add x0 1' 'galaxy = x0'
@@ -151,7 +157,7 @@ test_message 'galaxy = ap ap mul 2 ap ap add 3 4' 'galaxy = 14'
 
 # #18. S Combinator
 # test_message 'galaxy = ap ap ap s x0 x1 x2' 'galaxy = ap ap x0 x2 ap x1 x2'
-# test_message 'galaxy = ap ap ap s add inc 1' 'galaxy = 3'
+test_message 'galaxy = ap ap ap s add inc 1' 'galaxy = 3'
 test_message 'galaxy = ap ap ap s mul ap add 1 6' 'galaxy = 42'
 
 
@@ -169,8 +175,8 @@ test_message 'galaxy = ap ap ap c add 1 2' 'galaxy = 3'
 test_message 'galaxy = ap ap t x0 x1' 'galaxy = x0'
 test_message 'galaxy = ap ap t 1 5' 'galaxy = 1'
 test_message 'galaxy = ap ap t t i' 'galaxy = t'
-# test_message 'galaxy = ap ap t t ap inc 5' 'galaxy = t'
-# test_message 'galaxy = ap ap t ap inc 5 t' 'galaxy = 6'
+test_message 'galaxy = ap ap t t ap inc 5' 'galaxy = t'
+test_message 'galaxy = ap ap t ap inc 5 t' 'galaxy = 6'
 
 
 # #22. False
@@ -201,13 +207,12 @@ test_message 'galaxy = ap cdr ap ap cons x0 x1' 'galaxy = x1'
 
 
 # #28. Nil (Empty List)
-# 気になる
-# test_message 'galaxy = ap nil x0' 'galaxy = t'
+test_message 'galaxy = ap nil x0' 'galaxy = t'
 
 
 # #29. Is Nil (Is Empty List)
-# test_message 'galaxy = ap isnil nil' 'galaxy = t'
-# test_message 'galaxy = ap isnil ap ap cons x0 x1' 'galaxy = f'
+test_message 'galaxy = ap isnil nil' 'galaxy = t'
+test_message 'galaxy = ap isnil ap ap cons x0 x1' 'galaxy = f'
 
 
 # #31. Vector
@@ -220,5 +225,5 @@ test_message 'galaxy = ap cdr ap ap cons x0 x1' 'galaxy = x1'
 
 
 # #37. Is 0
-# test_message 'galaxy = ap ap ap if0 0 x0 x1' 'galaxy = x0'
-# test_message 'galaxy = ap ap ap if0 1 x0 x1' 'galaxy = x1'
+test_message 'galaxy = ap ap ap if0 0 x0 x1' 'galaxy = x0'
+test_message 'galaxy = ap ap ap if0 1 x0 x1' 'galaxy = x1'

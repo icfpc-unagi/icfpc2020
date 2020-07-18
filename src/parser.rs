@@ -141,6 +141,17 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 							map,
 							eval_tuple,
 						),
+						E::Etc(name) if name == "if0" => {
+							if let E::Num(a) = eval(y3, map, eval_tuple) {
+								if a.is_zero() {
+									eval(y2, map, eval_tuple)
+								} else {
+									eval(y1, map, eval_tuple)
+								}
+							} else {
+								panic!()
+							}
+						}
 						_ => E::Ap(Rc::new(x1), y1.clone()),
 					},
 					_ => E::Ap(x1.clone().into(), y1.clone().into()),
@@ -150,6 +161,20 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 					map,
 					eval_tuple,
 				),
+				E::Etc(name) if name == "inc" => {
+					if let E::Num(a) = eval(y1, map, eval_tuple) {
+						E::Num(a + 1)
+					} else {
+						panic!();
+					}
+				}
+				E::Etc(name) if name == "dec" => {
+					if let E::Num(a) = eval(y1, map, eval_tuple) {
+						E::Num(a - 1)
+					} else {
+						panic!();
+					}
+				}
 				E::Etc(name) if name == "neg" => {
 					if let E::Num(a) = eval(y1, map, eval_tuple) {
 						E::Num(-a)
@@ -187,6 +212,7 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 					}
 				}
 				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple),
+				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
