@@ -226,5 +226,5 @@ test_message 'galaxy = ap isnil ap ap cons x0 x1' 'galaxy = f'
 
 
 # #37. Is 0
-# test_message 'galaxy = ap ap ap if0 0 x0 x1' 'galaxy = x0'
-# test_message 'galaxy = ap ap ap if0 1 x0 x1' 'galaxy = x1'
+test_message 'galaxy = ap ap ap if0 0 x0 x1' 'galaxy = x0'
+test_message 'galaxy = ap ap ap if0 1 x0 x1' 'galaxy = x1'

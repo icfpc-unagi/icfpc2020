@@ -141,6 +141,17 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool) -> E {
 							map,
 							eval_tuple,
 						),
+						E::Etc(name) if name == "if0" => {
+							if let E::Num(a) = eval(y3, map, eval_tuple) {
+								if a.is_zero() {
+									eval(y2, map, eval_tuple)
+								} else {
+									eval(y1, map, eval_tuple)
+								}
+							} else {
+								eval(y1, map, eval_tuple)
+							}
+						}
 						_ => E::Ap(Rc::new(x1), y1.clone()),
 					},
 					_ => E::Ap(x1.clone().into(), y1.clone().into()),
