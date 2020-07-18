@@ -37,10 +37,8 @@ fn run() {
 			xy.into(),
 		);
 		let mut data = app::parser::Data::default();
-		let f = eval(&exp, &functions, true, &mut data);
-		// let f = eval(&exp, &functions, false, &mut data);
-		// let f = eval(&f, &functions, true, &mut data);
-
+		let f = eval(&exp, &functions, false, &mut data);
+		let f = eval(&f, &functions, true, &mut data);
 		// eprintln!("{}", f);
 		// for (id, c) in data.count {
 		// 	eprintln!("{}: {}", id, c);
