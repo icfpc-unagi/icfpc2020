@@ -320,6 +320,16 @@ fn consume_space(s: &str) -> &str {
 	return s.trim_start_matches(char::is_whitespace);
 }
 
+pub fn to_text(e: &E) -> String {
+	match e {
+		E::Ap(a, b) => format!("ap {} {}", to_text(a), to_text(b)),
+		E::Cloned(a, _) => to_text(a),
+		E::Num(a) => format!("{}", a),
+		E::Pair(a, b) => format!("ap {} {}", to_text(a), to_text(b)),
+		E::Etc(name) => name.to_owned(),
+	}
+}
+
 pub fn parse_lisp(s: &str) -> (E, &str) {
 	let mut s = consume_space(s);
 	if s.starts_with("(") {

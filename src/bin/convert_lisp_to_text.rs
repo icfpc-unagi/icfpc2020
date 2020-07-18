@@ -8,6 +8,6 @@ fn main() {
 	for line in stdin.lines() {
 		let line = line.unwrap();
 		let r = parser::parse_lisp(&line);
-		println!("{}", r.0);
+		println!("{}", parser::to_text(&r.0));
 	}
 }
