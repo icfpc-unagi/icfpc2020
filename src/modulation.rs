@@ -33,7 +33,7 @@ impl From<&E> for Mod {
 				Box::new(Mod::from(a.as_ref())),
 				Box::new(Mod::from(b.as_ref())),
 			),
-			_ => panic!(),
+			_ => panic!("Failed to parse: {}", e),
 		}
 	}
 }
@@ -96,6 +96,9 @@ fn demodulate_uint(s: &str) -> (BigUint, usize) {
 		if p == 0 {
 			Zero::zero()
 		} else {
+			if s.len() < end {
+				panic!("Data would be broken.  Failed to parse a number.");
+			}
 			BigUint::from_str_radix(&s[p + 1..end], 2).unwrap()
 		},
 		end,

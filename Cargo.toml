@@ -13,6 +13,7 @@ num = "*"
 futures = "*"
 rand = "*"
 image = "*"
+colorous = "*"
 
 [profile.release]
 debug = true

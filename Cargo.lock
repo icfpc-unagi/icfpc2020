@@ -10,6 +10,7 @@ checksum = "567b077b825e468cc974f0020d4082ee6e03132512f207ef1a02fd5d00d1f32d"
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "colorous",
  "futures",
  "http-body",
  "hyper",
@@ -67,6 +68,12 @@ name = "color_quant"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dbbb57365263e881e805dc77d94697c9118fd94d8da011240555aa7b23445bd"
+
+[[package]]
+name = "colorous"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aba0709907d231ef5ac2ab2209bd52e16c4788b05fded799f0ec5b6f33895089"
 
 [[package]]
 name = "core-foundation"
