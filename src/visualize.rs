@@ -97,6 +97,12 @@ pub fn multidraw_stacked_from_e_to_file(list_of_list_of_coords: &E, path: &str) 
     img.save(path).unwrap();
 }
 
+pub fn multidraw_stacked_from_e_to_file_scale(list_of_list_of_coords: &E, path: &str, scale: u32) {
+    let list_of_list_of_coords = collect_list_of_list_of_coords(list_of_list_of_coords);
+    let img = super::draw::multidraw_gradient_scale(&list_of_list_of_coords, scale);
+    img.save(path).unwrap();
+}
+
 pub fn draw_from_vec_to_file(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, path: &str) {
     let img = super::draw::draw(list_of_coords);
     img.save(path).unwrap();
