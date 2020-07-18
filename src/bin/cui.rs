@@ -22,6 +22,7 @@ fn run() {
 	let mut state = String::new();
 	init_state.read_to_string(&mut state).expect("ini_state read error");
 	let mut state = parser::parse_lisp(&state).0;
+	state = E::Etc("nil".to_owned());  // debug
 
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
@@ -59,6 +60,8 @@ fn run() {
 		let mut data = app::parser::Data::default();
 		let f = eval(&exp, &functions, false, &mut data);
 		let f = eval(&f, &functions, true, &mut data);
+		let sum_count: usize = data.count.values().sum();
+		eprintln!("{}", sum_count);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
 				if let E::Pair(data, _) = b.as_ref() {
