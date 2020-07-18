@@ -181,8 +181,8 @@ fn draw_on_scale<T: GenericImage<Pixel = Rgba<u8>>>(
 #[test]
 fn test_draw() {
 	let img = draw(&bigvecs(&[(1, 2), (-1, -1)]));
-	assert_eq!(img.get_pixel(1, 1), Rgba([0, 0, 0, 255]));
-	assert_eq!(img.get_pixel(2, 3), Rgba([255, 255, 255, 255]));
+	assert_eq!(img.get_pixel(2, 2), Rgba([0, 0, 0, 255]));
+	assert_eq!(img.get_pixel(3, 4), Rgba([255, 255, 255, 255]));
 }
 
 #[test]
