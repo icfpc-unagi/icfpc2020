@@ -4,6 +4,7 @@ set -eux
 
 export ICFPC_API_HOST=$1
 export ICFPC_API_KEY=$2
+export JUDGE_SERVER=1
 
 free -h
 for f in /sys/fs/cgroup/memory/*; do
@@ -12,6 +13,8 @@ for f in /sys/fs/cgroup/memory/*; do
 	echo
 done
 cat /proc/cpuinfo
+
+mkdir -p out
 
 ./target/release/cui \
 	--init-state ./data/performance_test-init_state.txt \
