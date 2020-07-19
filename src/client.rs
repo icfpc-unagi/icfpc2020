@@ -7,6 +7,7 @@ use std::env;
 use std::io::BufWriter;
 use std::fs::File;
 use std::io::Write;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -95,7 +96,7 @@ impl From<&E> for Command {
 pub struct Client {
 	server_url: String,
 	player_key: String,
-	file: Option<BufWriter<File>>,
+	file: Option<RefCell<BufWriter<File>>>,
 	client: reqwest::Client
 }
 
@@ -117,16 +118,17 @@ impl Client {
 			Ok(t) => t.as_nanos(),
 			_ => 0,
 		};
-		let msg = format!("###GUI\t{}\t{}\t{}\t{}", t, self.player_key, name, e);
+		let msg = format!("###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, e);
 		let mut printed = false;
 		if let Some(f) = &self.file {
-			// f.write_all(msg.as_bytes());
+			f.borrow_mut().write_all(msg.as_bytes())
+				.expect("Failed to write to file");
 			printed = true;
 		}
 		if let Ok(_) = env::var("GUI") {
-			println!("###GUI\t{}\t{}\t{}\t{}", t, self.player_key, name, e);
+			print!("{}", &msg);
 		} else if !printed {
-			println!("###GUI\t{}\t{}\t{}\t{}", t, self.player_key, name, e);
+			print!("{}", &msg);
 		}
 	}
 
@@ -150,8 +152,9 @@ impl Client {
 	pub fn join(&mut self, player_key: &str) -> Response {
 		self.player_key = player_key.to_owned();
 		if let Err(_) = env::var("JUDGE_SERVER") {
-			self.file = Some(BufWriter::new(File::create(
-				&format!("out/{}", self.player_key)).expect("out is missing")));
+			self.file = Some(RefCell::new(BufWriter::new(File::create(
+				&format!("out/{}", self.player_key))
+				.expect("out directory is missing"))));
 		}
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
