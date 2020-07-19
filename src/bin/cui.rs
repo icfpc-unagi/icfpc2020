@@ -13,6 +13,8 @@ use app::*;
 struct Args {
 	#[structopt(long, default_value = "")]
 	init_state: String,
+	#[structopt(long, default_value = "")]
+	input_file: String,
 	#[structopt(long)]
 	recognize: bool,
 }
@@ -31,7 +33,7 @@ fn prepare_init_state(args: &Args) -> E {
 fn run() {
 	let args = Args::from_args();
 	println!("Args: {:?}", &args);
-
+	
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
 	let mut evaluator = app::parser::Evaluator::default();
@@ -50,7 +52,11 @@ fn run() {
 
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
-	let mut stdin = stdin.lock();
+	let mut stdin: Box<dyn BufRead> = if args.input_file.len() > 0 {
+		Box::new(std::io::BufReader::new(std::fs::File::open(args.input_file).unwrap()))
+	} else {
+		Box::new(stdin.lock())
+	};
 	let mut current_data = E::Num(0.into());
 	for iter in 0.. {
 		let (x, y) = if iter == 0 {
