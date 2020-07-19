@@ -6,7 +6,11 @@ export ICFPC_API_HOST=$1
 export ICFPC_API_KEY=$2
 
 free -h
-for f in /sys/fs/cgroup/memory/*; do echo $f; cat $f; echo; done
+for f in /sys/fs/cgroup/memory/*; do
+	echo $f
+	cat $f || echo 'failed to read'
+	echo
+done
 cat /proc/cpuinfo
 
 ./target/release/cui \
