@@ -146,6 +146,7 @@ impl Evaluator {
 
 		// optimized functions
 		functions[1141] = E::Other("list_index".to_owned());
+		functions[1131] = E::Other("list_concat".to_owned());
 
 		let n = functions.len();
 		let mut ev = Evaluator {
@@ -304,6 +305,11 @@ impl Evaluator {
 								panic!("list_index: invalid index {}", y1)
 							}
 						}
+						E::Other(name) if name == "list_concat" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							self.list_concat(eval_tuple, y2, y1)
+						}
 						E::Ap(x3, y3) => match x3.as_ref() {
 							E::Other(name) if name == "b" => self.eval(
 								&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
@@ -444,6 +450,34 @@ impl Evaluator {
 				}
 			}
 			_ => panic!("list_index: invalid type of array {}", &list),
+		}
+	}
+
+	fn list_concat(&mut self, eval_tuple: bool, a: E, b: E) -> E {
+		let a = a.matcher();  // fix: support vec
+		match a {
+			E::Nil => b,
+			// otherwise the result is not nil
+			E::Pair(a_head, a_tail) => {
+				// eprintln!("debug: list_concat: Pair, eval_tuple = {}", eval_tuple);
+				if !eval_tuple {
+					let tail = E::Ap(
+						Rc::new(E::Ap(
+							Rc::new(E::Other("list_concat".to_owned())),
+							a_tail.clone(),
+						)),
+						Rc::new(b),
+					);
+					E::Pair(a_head.clone(), Rc::new(tail))
+				} else {
+					let a_head = self.eval(a_head.as_ref(), eval_tuple);
+					let a_tail = self.eval(a_tail.as_ref(), eval_tuple);
+					let tail = self.list_concat(eval_tuple, a_tail, b);
+					E::Pair(Rc::new(a_head), Rc::new(tail))
+				}
+			}
+			// E::List(a, a_offset) => todo!(),
+			_ => panic!("list_concat: invalid type of lhs {}", &a),
 		}
 	}
 }
