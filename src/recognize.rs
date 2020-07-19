@@ -1,5 +1,4 @@
-use super::parser::E;
-use std::fmt::Formatter;
+use super::parser::{Int, E};
 
 const CHARS: &'static [(&'static str, &'static str)] = &[
     ("galaxy", r#"
@@ -23,7 +22,7 @@ type Bitmap2D = Vec<Vec<bool>>;
 
 #[derive(Debug, Clone)]
 pub enum RecognizedChar {
-    Num(num::BigInt),
+    Num(Int),
     Char(String),
 }
 
@@ -37,7 +36,7 @@ impl RecognizedChar {
 }
 
 impl std::fmt::Display for RecognizedChar {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RecognizedChar::Num(n) => write!(f, "{}", n),
             RecognizedChar::Char(name) => write!(f, "{}", name),
@@ -81,7 +80,7 @@ impl Recognizer {
             let (bmp, (min_x, min_y)) = super::visualize::create_bitmap_with_offset(list_of_coords);
             let match_results = self.match_all(&bmp);
 
-            results.append(&mut match_results.into_iter().map(|((x, y), rr)| ((channel, min_x.clone() + x, min_y.clone() + y), rr)).collect());
+            results.append(&mut match_results.into_iter().map(|((x, y), rr)| ((channel, min_x.clone() + x as Int, min_y.clone() + y as Int), rr)).collect());
         }
 
         RecognitionResult {
@@ -214,8 +213,8 @@ impl Recognizer {
 
         // dbg!(x, y, k);
 
-        let mut n = num::BigInt::from(0);
-        let mut b = num::BigInt::from(1 as i32);
+        let mut n = Int::from(0);
+        let mut b = Int::from(1 as i32);
         for i in 0..k * k {
             if bmp[y + 1 + i / k][x + 1 + i % k] {
                 n += &b;
@@ -273,7 +272,7 @@ impl Recognizer {
 
 #[derive(Debug)]
 pub struct RecognitionResult {
-    chars: Vec<((usize, num::BigInt, num::BigInt), RecognizedChar)>,
+    chars: Vec<((usize, Int, Int), RecognizedChar)>,
 }
 
 impl RecognitionResult {
