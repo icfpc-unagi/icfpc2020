@@ -4,7 +4,7 @@ use app::*;
 use modulation::modulate;
 use parser::E;
 
-fn main() {
+fn run() {
 	let stdin = std::io::stdin();
 	let stdin = stdin.lock();
 	let mut functions = std::collections::BTreeMap::new();
@@ -17,7 +17,7 @@ fn main() {
 		functions.insert(name, exp);
 	}
 	let mut data = app::parser::Data::default();
-	let yabai = [1096, 1104, 1433, 1434, 1435, 1436, 1437];
+	let yabai = [1096, 1433, 1434, 1435, 1436, 1437];
 	let yabai: ::std::collections::BTreeSet<String> = yabai.iter().map(
 		|&n| format!(":{}", n)
 	).collect();
@@ -48,4 +48,13 @@ fn main() {
 	} else {
 		panic!();
 	}
+}
+
+fn main() {
+	let _ = ::std::thread::Builder::new()
+		.name("run".to_string())
+		.stack_size(32 * 1024 * 1024)
+		.spawn(run)
+		.unwrap()
+		.join();
 }
