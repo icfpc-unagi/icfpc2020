@@ -1,52 +1,56 @@
-use http_body::Body as _;
-use hyper::{Body, Client, Method, Request, StatusCode};
-use std::env;
-use std::process;
+use reqwest::blocking as reqwest;
+use parser::*;
+use app::*;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-	let args: Vec<String> = env::args().collect();
+struct Client {
+	server_url: String,
+	client: reqwest::Client
+}
 
-	let server_url = &args[1];
-	let player_key = &args[2];
-
-	println!("ServerUrl: {}; PlayerKey: {}", server_url, player_key);
-
-	let client = Client::new();
-	let req = Request::builder()
-		.method(Method::POST)
-		.uri(server_url)
-		.body(Body::from(format!("{}", player_key)))?;
-
-	match client.request(req).await {
-		Ok(mut res) => match res.status() {
-			StatusCode::OK => {
-				print!("Server response: ");
-				while let Some(chunk) = res.body_mut().data().await {
-					match chunk {
-						Ok(content) => println!("{:?}", content),
-						Err(why) => println!("error reading body: {:?}", why),
-					}
-				}
-			}
-			_ => {
-				println!("Unexpected server response:");
-				println!("HTTP code: {}", res.status());
-				print!("Response body: ");
-				while let Some(chunk) = res.body_mut().data().await {
-					match chunk {
-						Ok(content) => println!("{:?}", content),
-						Err(why) => println!("error reading body: {:?}", why),
-					}
-				}
-				process::exit(2);
-			}
-		},
-		Err(err) => {
-			println!("Unexpected server response:\n{}", err);
-			process::exit(1);
+impl Client {
+	pub fn new(server_url: String) -> Self {
+		Self {
+			server_url,
+			client: reqwest::Client::new()
 		}
 	}
+	pub fn send(&self, msg: &str) -> E {
+		eprintln!("send: {}", msg);
+		let msg = to_text(&parse_lisp(msg).0);
+		let ss = msg.split_whitespace().collect::<Vec<_>>();
+		let (exp, n) = parser::parse(&ss, 0);
+		assert_eq!(n, ss.len());
+		let e = parser::eval(&exp, true);
+		let msg = modulation::modulate(&e);
+		eprintln!("send: {}", msg);
+		let resp = self.client.post(&self.server_url).body(msg).send().unwrap().text().unwrap();
+		eprintln!("resp: {}", resp);
+		let resp = modulation::demodulate(&resp);
+		eprintln!("resp: {}", resp);
+		resp
+	}
+	pub fn join_request(&self, player_key: &str) {
+		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
+	}
+}
 
-	Ok(())
+
+fn run() {
+	let server_url = std::env::args().nth(1).unwrap();
+	let mut client = Client::new(server_url);
+	if std::env::args().len() == 2 {
+		client.send("[1, 0]");
+		return;
+	}
+	let player_key = std::env::args().nth(2).unwrap();
+	client.join_request(&player_key);
+}
+
+fn main() {
+	let _ = ::std::thread::Builder::new()
+		.name("run".to_string())
+		.stack_size(32 * 1024 * 1024)
+		.spawn(run)
+		.unwrap()
+		.join();
 }
