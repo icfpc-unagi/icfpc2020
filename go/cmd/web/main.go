@@ -48,7 +48,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}()
 	r.ParseForm()
 	w.Header().Set("Content-Type", "text/html")
-	input := r.URL.Query().Get("input")
+	input := r.PostForm.Get("input")
 	glog.Infof("Input: %s", input)
 	if _, err := game.stdin.Write([]byte(strings.Trim(input, " \n") + "\n")); err != nil {
 		glog.Fatalf("Error: %w", err)
@@ -95,7 +95,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(bw, "INFO: %s<br>", info)
 	fmt.Fprintf(bw, "KVs: %v<br>", kvs)
 	fmt.Fprintf(bw, `
-		<form action="/" method="GET">
+		<form action="/" method="POST">
 		Coordinates: <input name="input" type="text" value="">
 		<input type=submit value="Send">
 		</form>
