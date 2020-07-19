@@ -73,8 +73,6 @@ fn run() {
 			(9999, 9999)
 		} else {
 			let mut line = String::new();
-			let _ = stdin.read_line(&mut line).unwrap();
-			let line = recognition_result.filter_command(line.trim());
 			if let Ok(_) = std::env::var("GUI") {
 				print!("###GUI###\t");
 				let list_of_list_of_coords = app::visualize::collect_list_of_list_of_coords(&current_data);
@@ -87,6 +85,7 @@ fn run() {
 				eprintln!("EOF");
 				return;
 			}
+			let line = recognition_result.filter_command(line.trim());
 
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
