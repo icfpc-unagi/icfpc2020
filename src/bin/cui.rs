@@ -6,6 +6,7 @@ use app;
 use std::rc::Rc;
 use std;
 use structopt::StructOpt;
+use std::env;
 
 use app::*;
 
@@ -84,7 +85,9 @@ fn run() {
 				state = prev_state;
 				current_data = prev_data;
 				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
-				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
+				if let Ok(p) = env::var("IMAGE_OUTPUT") {
+					app::visualize::multidraw_stacked_from_e_to_file(&current_data, &p);
+				}
 				if args.recognize {
 					recognition_result = recognizer.recognize(&current_data);
 					recognition_result.pretty_print();
@@ -177,7 +180,9 @@ fn run() {
 				eprintln!("state: {}", state);
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
-			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
+			if let Ok(p) = env::var("IMAGE_OUTPUT") {
+				app::visualize::multidraw_stacked_from_e_to_file(&data, &p);
+			}
 			if args.recognize {
 				recognition_result = recognizer.recognize(&current_data);
 				recognition_result.pretty_print();
