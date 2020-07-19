@@ -19,14 +19,10 @@ DATETIME="$(TZ=Asia/Tokyo date +%Y%m%d-%H%M%S)"
 COMMIT_ID="$(git rev-parse --short HEAD)"
 COMMIT_MSG="$(git log -n 1)"
 
-pushd build/submission
-git checkout -b "candidates/${DATETIME}-${COMMIT_ID}"
-popd
-
 bash script/build-submission.sh
 
 pushd build/submission
 git add -A
-git commit -am "${DATETIME}-${COMMIT_ID}"$'\n'"${COMMIT_MSG}"
-git push --set-upstream origin "candidates/${DATETIME}-${COMMIT_ID}"
+git commit -am "${DATETIME}-${COMMIT_ID} #release"$'\n'"${COMMIT_MSG}"
+git push --set-upstream origin "submission"
 popd
