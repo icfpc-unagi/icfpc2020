@@ -103,7 +103,7 @@ fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
 		(1 - min_x, 1 - min_y),
 	)
 }
-fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
+pub fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
 	let it = vv.iter().map(|loc| loc.iter()).flatten();
 	let (min_x, max_x, min_y, max_y) = (
 		it.clone().map(|c| &c.0).min().unwrap(),
