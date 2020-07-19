@@ -14,5 +14,5 @@ for f in /sys/fs/cgroup/memory/*; do
 done
 cat /proc/cpuinfo
 
-./target/release/app ${EXTRA_FLASG:-} "$@" || \
+./app ${EXTRA_FLASG:-} "$@" || \
 	echo "ERROR: exit_code=$?"
