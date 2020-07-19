@@ -11,7 +11,7 @@ async fn send_async(s: String) -> String {
 	let res = client
 		.post(&format!(
 			"{}{}",
-			"http://localhost:9000/aliens/send?apiKey=",
+			"https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=",
 			env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
 		))
 		.body(s.clone())
