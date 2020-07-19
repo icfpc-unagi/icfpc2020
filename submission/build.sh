@@ -2,6 +2,6 @@
 
 set -eux
 
-cargo build --release --offline --bin=app
-cp ./target/release/app app
+cargo build --release --offline --bin=chokudAI
+cp ./target/release/chokudAI app
 rm -rf ./target
