@@ -14,6 +14,8 @@ futures = "*"
 rand = "*"
 image = "*"
 colorous = "*"
+follow-redirects = "*"
+reqwest = "*"
 
 [profile.release]
 debug = true

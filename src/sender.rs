@@ -1,40 +1,22 @@
-use http_body::Body as _;
-use hyper::{Body, Client, Method, Request, StatusCode};
-use hyper_tls::HttpsConnector;
 use std::env;
 use tokio::runtime::Runtime;
+use reqwest;
 
 async fn send_async(s: String) -> String {
-	let https = HttpsConnector::new();
-	let client = Client::builder().build::<_, hyper::Body>(https);
-	let req = Request::builder()
-		.method(Method::POST)
-		.uri(format!(
-			"{}{}",
-			"https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=",
-			env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
-		))
-		.body(Body::from(s))
-		.unwrap();
-	match client.request(req).await {
-		Ok(mut res) => {
-			let mut cs = vec![];
-			while let Some(chunk) = res.body_mut().data().await {
-				match chunk {
-					Ok(c) => {
-						cs.append(&mut c.to_vec());
-					}
-					Err(e) => panic!("{}", e),
-				}
-			}
-			let s = String::from_utf8(cs).unwrap();
-			match res.status() {
-				StatusCode::OK => return s,
-				_ => panic!("HTTP code: {}\nBody: {}", res.status(), s),
-			}
-		}
-		Err(err) => panic!("Unexpected server response:\n{}", err),
+	let client = reqwest::Client::new();
+	let res = client.post(&format!(
+		"{}{}",
+		"https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=",
+		env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
+	))
+		.body(s.clone())
+		.send()
+		.await;
+	let resp = res.unwrap();
+	if resp.status() != reqwest::StatusCode::OK {
+		panic!("Unexpected respose: {:?}", resp);
 	}
+	resp.text().await.unwrap()
 }
 
 #[allow(dead_code)]
