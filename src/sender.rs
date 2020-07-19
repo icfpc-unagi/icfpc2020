@@ -6,7 +6,8 @@ use tokio::runtime::Runtime;
 async fn send_async(s: String) -> String {
 	let client = reqwest::Client::builder()
 		.redirect(redirect::Policy::limited(1000))
-		.build();
+		.build()
+		.unwrap();
 	let res = client
 		.post(&format!(
 			"{}{}",
