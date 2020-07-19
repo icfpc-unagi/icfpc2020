@@ -10,7 +10,7 @@ fn collect_list_of_coords(e: &E) -> Vec<(num::BigInt, num::BigInt)> {
     e.into_iter().map(|e| collect_coords(e)).collect()
 }
 
-fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(num::BigInt, num::BigInt)>> {
+pub fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(num::BigInt, num::BigInt)>> {
     e.into_iter().map(|e| collect_list_of_coords(e)).collect()
 }
 

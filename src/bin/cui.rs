@@ -2,7 +2,9 @@ use std::io::prelude::*;
 
 use app::parser::*;
 use app::sender::*;
+use app;
 use std::rc::Rc;
+use std;
 
 use app::*;
 
@@ -41,6 +43,13 @@ fn run() {
 			(0, 0)
 		} else {
 			let mut line = String::new();
+			if let Ok(_) = std::env::var("GUI") {
+				print!("###GUI###\t");
+				let list_of_list_of_coords = app::visualize::collect_list_of_list_of_coords(&current_data);
+				let ((w, h), offset) = app::draw::range_vv(&list_of_list_of_coords);
+				print!("w:{}\th:{}\tx:{}\ty:{}", w, h, offset.0, offset.1);
+				println!();
+			}
 			let _ = stdin.read_line(&mut line).unwrap();
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
@@ -48,6 +57,7 @@ fn run() {
 				state = prev_state;
 				current_data = prev_data;
 				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
 				continue;
 			} else if ss.len() != 2 {
 				eprintln!("illegal input");
@@ -120,6 +130,7 @@ fn run() {
 				eprintln!("state: {}", state);
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
 		} else {
 			eprintln!("orz");
 		}
