@@ -1,6 +1,8 @@
 use app::client::*;
 use rand::prelude::*;
 
+struct
+
 fn run(){
 
 	//CREATE
@@ -125,24 +127,48 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 		else {addy = -1;}
 	}
 
+	
+	if myship.v.0.abs() > 10{
+		if myship.v.0 < 0 { addx = 1; }
+		else {addx = -1;}
+	}
+	
+	if myship.pos.1.abs() > 10{
+		if myship.v.1 < 0 { addy = 1; }
+		else {addy = -1;}
+	}
+
 	let mut shoot_flag = false;
 	let mut accelerate_flag = false;
 	let mut shooty = next_enemy[0];
 	let mut shootx = next_enemy[1];
 
-	if addy != 0 || addx != 0 {accelerate_flag = true; }
+	let mut next_me = vec![myship.pos.0+myship.v.0+addx, myship.pos.1+myship.v.1+addy];
+
+
 	if myship.heat <= myship.max_heat - 60 {shoot_flag = true;}
 
-	let maxlen = (myship.pos.0-enemyship.pos.0).abs().max( (myship.pos.1-enemyship.pos.1).abs());
-	let minlen = (myship.pos.0-enemyship.pos.0).abs().min( (myship.pos.1-enemyship.pos.1).abs());
+	let maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[0]-next_enemy[1]).abs());
+	let minlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[0]-next_enemy[1]).abs());
 
+	let terrible_angle = (maxlen * 2 / 10 <= minlen) && (maxlen * 8 / 10 >= minlen);
+	let bad_angle = (maxlen * 1 / 10 <= minlen) && (maxlen * 9 / 10 >= minlen);
 
-
-	if maxlen * 1 / 10 <= minlen && maxlen * 9 / 10 >= minlen {shoot_flag = false;}
+	if !bad_angle || (!terrible_angle && minlen + maxlen <= 25) {
+		if addx == 0 && addy == 0 {
+			let num = thread_rng().gen_range(0, 4);
+			addx = num / 2 * 2 - 1;
+			addy = num % 2 * 2 - 1;
+		}
+	}
+	else{
+		shoot_flag = false;
+	}
 
 	eprintln!("debug {} {} {} {} {} {} {}", myship.status.energy, myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, addx, addy);
 
 
+	if addy != 0 || addx != 0 {accelerate_flag = true; }
 	let mut ret = vec![];
 
 	if shoot_flag{
