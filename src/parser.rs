@@ -16,24 +16,6 @@ pub enum E {
 	Cloned(Rc<E>, usize),
 }
 
-/*
-pub fn regularize_etc(e: &E) -> E {
-	match e {
-		E::Ap(a, b) => E::Ap(Rc::new(regularize_etc(a)), Rc::new(regularize_etc(b))),
-		E::Num(num) => E::Num(num.clone()),
-		E::Pair(a, b) => E::Pair(Rc::new(regularize_etc(a)), Rc::new(regularize_etc(b))),
-		E::Etc(etc) => E::Etc(match etc {
-			Etc::Other(name) if name == "nil" => Etc::Nil,
-			Etc::Other(name) if name == "t" => Etc::T,
-			Etc::Other(name) if name == "f" => Etc::F,
-			Etc::Other(name) if name == "cons" => Etc::Cons,
-			_ => etc.clone(),
-		}),
-		E::Cloned(e, s) => E::Cloned(Rc::new(regularize_etc(e)), *s),
-	}
-}
-*/
-
 pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 	if ss[i] == "ap" {
 		let (first, j) = parse(ss, i + 1);
