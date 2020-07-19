@@ -18,6 +18,17 @@ pub enum E {
 	Cloned(Rc<E>, usize),
 }
 
+impl E {
+	fn count_thunk(&self) -> usize {
+		match self {
+			E::Cloned(a, _) => 1 + a.as_ref().count_thunk(),
+			E::Ap(a, b) => a.as_ref().count_thunk() + b.as_ref().count_thunk(),
+			E::Pair(a, b) => a.as_ref().count_thunk() + b.as_ref().count_thunk(),
+			_ => 0,
+		}
+	}
+}
+
 pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 	if ss[i] == "ap" {
 		let (first, j) = parse(ss, i + 1);
@@ -70,9 +81,11 @@ pub struct Evaluator {
 	pub count: Vec<usize>,
 	pub cache: Vec<Option<E>>,
 	pub cache2: Vec<Option<E>>,
+	/*
 	pub keep1: Vec<bool>,
 	pub keep2: Vec<bool>,
 	m: usize,
+	*/
 }
 
 impl Evaluator {
@@ -96,14 +109,25 @@ impl Evaluator {
 			}
 		}
 		let n = functions.len();
-		let mut ev = Evaluator { functions, count: vec![0; n], cache: vec![None; n], cache2: vec![None; n], keep1: vec![true; n], keep2: vec![true; n], m: n };
+		let mut ev = Evaluator {
+			functions,
+			count: vec![0; n], cache: vec![None; n], cache2: vec![None; n],
+			// keep1: vec![true; n], keep2: vec![true; n], m: n
+		};
+		let mut normalized_functions = Vec::new();
 		for i in 0..n {
 			let f = ev.functions[i].clone();
 			let f = ev.eval(&f, false);
 			ev.cache[i] = Some(f.clone());
-			ev.cache2[i] = Some(ev.eval(&f, true));
+			let f = ev.eval(&f, true);
+			ev.cache2[i] = Some(f.clone());
+			normalized_functions.push(f);
 			// eprintln!(":{} = {}", i, ev.cache2[i].clone().unwrap());
 		}
+		for f in normalized_functions.iter() {
+			assert_eq!(f.count_thunk(), 0);
+		}
+		/*
 		ev.m = ev.cache.len();
 		ev.keep1.resize(ev.m, false);
 		ev.keep2.resize(ev.m, false);
@@ -112,10 +136,18 @@ impl Evaluator {
 			ev.keep2[i] = ev.cache2[i].is_some();
 		}
 		eprintln!("m = {}", ev.m);
+		*/
+		ev.cache = ev.cache2.clone();
+		ev.clear_cache();
+		// ev.count = vec![0; n];
 		ev
 	}
 	
 	pub fn clear_cache(&mut self) {
+		let n = self.functions.len();
+		self.cache.truncate(n);
+		self.cache2.truncate(n);
+		/*
 		self.cache.truncate(self.m);
 		self.cache2.truncate(self.m);
 		for i in self.functions.len()..self.m {
@@ -126,6 +158,7 @@ impl Evaluator {
 				self.cache2[i] = None;
 			}
 		}
+		*/
 	}
 	
 	pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
