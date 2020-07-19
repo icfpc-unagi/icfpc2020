@@ -70,6 +70,8 @@ pub struct Evaluator {
 	pub count: Vec<usize>,
 	pub cache: Vec<Option<E>>,
 	pub cache2: Vec<Option<E>>,
+	pub keep1: Vec<bool>,
+	pub keep2: Vec<bool>,
 	m: usize,
 }
 
@@ -94,22 +96,36 @@ impl Evaluator {
 			}
 		}
 		let n = functions.len();
-		let mut ev = Evaluator { functions, count: vec![0; n], cache: vec![None; n], cache2: vec![None; n], m: n };
+		let mut ev = Evaluator { functions, count: vec![0; n], cache: vec![None; n], cache2: vec![None; n], keep1: vec![true; n], keep2: vec![true; n], m: n };
 		for i in 0..n {
 			let f = ev.functions[i].clone();
-			ev.cache[i] = Some(ev.eval(&f, false));
-			eprintln!("f: {}", i);
-			// if ![1096, 1104, 1433, 1434, 1435, 1436, 1437].contains(&i) {
-				ev.cache2[i] = Some(ev.eval(&f, true));
-			// }
+			let f = ev.eval(&f, false);
+			ev.cache[i] = Some(f.clone());
+			ev.cache2[i] = Some(ev.eval(&f, true));
+			// eprintln!(":{} = {}", i, ev.cache2[i].clone().unwrap());
 		}
 		ev.m = ev.cache.len();
+		ev.keep1.resize(ev.m, false);
+		ev.keep2.resize(ev.m, false);
+		for i in n..ev.m {
+			ev.keep1[i] = ev.cache[i].is_some();
+			ev.keep2[i] = ev.cache2[i].is_some();
+		}
+		eprintln!("m = {}", ev.m);
 		ev
 	}
 	
 	pub fn clear_cache(&mut self) {
 		self.cache.truncate(self.m);
 		self.cache2.truncate(self.m);
+		for i in self.functions.len()..self.m {
+			if !self.keep1[i] {
+				self.cache[i] = None;
+			}
+			if !self.keep2[i] {
+				self.cache2[i] = None;
+			}
+		}
 	}
 	
 	pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {

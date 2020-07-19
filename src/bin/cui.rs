@@ -150,7 +150,7 @@ fn run() {
 				let resp = app::modulation::demodulate(&resp);
 				eprintln!("resp(lisp): {}", &resp);
 				let exp = E::Ap(
-					Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
+					Rc::new(E::Ap(Rc::new(E::Function(1338)), state.clone().into())),
 					resp.into(),
 				);
 				ev.clear_cache();
