@@ -1,6 +1,11 @@
 use app::client::*;
 use rand::prelude::*;
 
+struct EnemyData{
+	pub pattern: Vec<Vec<i32>>,
+
+}
+
 fn run(){
 
 	//CREATE
@@ -28,12 +33,16 @@ fn run(){
 	
 	let mut resp = client.start(energy, shoot, heal, life);
 
+	let mut e_data = EnemyData{
+		pattern: vec![vec![0;5];5],
+	};
+
 	let id = resp.state.ships.iter().find_map(|s| if s.role == resp.info.role { Some(s.id) } else { None }).unwrap();
 	let my_role = join_resp.info.role;
 	//COMMANDS
 	while resp.stage != 2 {
 
-		resp = client.command(&chokud_ai(&resp, &id, &my_role));
+		resp = client.command(&chokud_ai(&resp, &id, &my_role, &e_data));
 		//dbg!(&resp);
 	}
 
@@ -41,7 +50,7 @@ fn run(){
 
 }
 
-fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
+fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &EnemyData) -> Vec<Command> {
 	
 	let mut myship = resp.state.ships[0].clone();
 	let mut enemyship = resp.state.ships[0].clone();
@@ -49,32 +58,46 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 	for i in 0..resp.state.ships.len() {
 		let nowship = resp.state.ships[i].clone();
 		if nowship.role == *my_role {myship = nowship; }
-		else {enemyship = nowship;}
+		else {
+			enemyship = nowship;
+			
+		}
 	}
 
 
 	let mut next_enemy = vec![enemyship.pos.0 + enemyship.v.0, enemyship.pos.1 + enemyship.v.1];
 
 	
-	if resp.state.tick < 30 || rand::thread_rng().gen_range(0, 2) == 0 {
-
-		if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
-			if enemyship.pos.1 >= 0 {
-				next_enemy[1] -= 1;
-			}
-			else{
-				next_enemy[1] += 1;
-			}
+	if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
+		if enemyship.pos.1 >= 0 {
+			next_enemy[1] -= 1;
 		}
-		if enemyship.pos.1.abs() <= enemyship.pos.0.abs(){
-			if enemyship.pos.0 >= 0 {
-				next_enemy[0] -= 1;
-			}
-			else{
-				next_enemy[0] += 1;
+		else{
+			next_enemy[1] += 1;
+		}
+	}
+	if enemyship.pos.1.abs() <= enemyship.pos.0.abs(){
+		if enemyship.pos.0 >= 0 {
+			next_enemy[0] -= 1;
+		}
+		else{
+			next_enemy[0] += 1;
+		}
+	}
+
+	let mut enemyMoveX = 0;
+	let mut enemyMoveY = 0;
+	let mut enemyCnt = 0;
+	for x in 0..5 {
+		for y in 0..5 {
+			if e_data.pattern[x][y] > enemyCnt {
+				enemyCnt = e_data.pattern[x][y];
+				enemyMoveX = x - 2;
+				enemyMoveY = y - 2;
 			}
 		}
 	}
+	
 
 	let mut addy = 0;
 	let mut addx = 0;
@@ -131,7 +154,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 		else {addx = -1;}
 	}
 	
-	if myship.pos.1.abs() > 10{
+	if myship.v.1.abs() > 10{
 		if myship.v.1 < 0 { addy = 1; }
 		else {addy = -1;}
 	}
@@ -152,11 +175,13 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 	let terrible_angle = (maxlen * 2 / 10 <= minlen) && (maxlen * 8 / 10 >= minlen);
 	let bad_angle = (maxlen * 1 / 10 <= minlen) && (maxlen * 9 / 10 >= minlen);
 
-	if !bad_angle || (!terrible_angle && minlen + maxlen <= 25) {
+	if !bad_angle || (!terrible_angle && minlen + maxlen <= 35) {
 		if addx == 0 && addy == 0 {
-			let num = thread_rng().gen_range(0, 4);
-			addx = num / 2 * 2 - 1;
-			addy = num % 2 * 2 - 1;
+			if minlen + maxlen <= 70 && enemyship.max_heat - enemyship.heat >= 30 && enemyship.status.power >= 30 {
+				let num = thread_rng().gen_range(0, 4);
+				addx = num / 2 * 2 - 1;
+				addy = num % 2 * 2 - 1;
+			}
 		}
 	}
 	else{
