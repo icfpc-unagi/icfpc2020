@@ -55,7 +55,7 @@ impl E {
 	fn try_into_list(&self) -> Option<E> {
 		if let Some(vec) = get_list(self) {
 			if vec.len() > 20 {
-				eprintln!("{}", vec.len());
+				// eprintln!("{}", vec.len());
 				let vec = Rc::new(vec);
 				return Some(E::List(vec, 0));
 			}
