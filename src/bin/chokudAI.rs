@@ -89,28 +89,28 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 	{
 
 		if myship.pos.0 >= 0 && myship.pos.0.abs() >= myship.pos.1.abs() {
-			if myship.v.1 < 7 {
+			if myship.v.1 < 5 {
 				addy = 1;
-				if myship.v.0 < 0 {addx = 1;}
+				if myship.v.0 < -2 {addx = 1;}
 			}
 		}
 		if myship.pos.0 <= 0 && myship.pos.0.abs() >= myship.pos.1.abs() {
-			if myship.v.1 > -7 { 
+			if myship.v.1 > -5 { 
 				addy = -1;
-				if myship.v.0 > 0 {addx = -1;}
+				if myship.v.0 > 2 {addx = -1;}
 			}
 		}
 
 		if myship.pos.1 >= 0 && myship.pos.1.abs() >= myship.pos.0.abs() {
-			if myship.v.0 > -7 {
+			if myship.v.0 > -5 {
 				addx = -1;
-				if myship.v.1 < 0 {addy = 1;}
+				if myship.v.1 < -2 {addy = 1;}
 			}
 		}
 		if myship.pos.1 <= 0 && myship.pos.1.abs() >= myship.pos.0.abs() {
-			if myship.v.0 < 7 { 
+			if myship.v.0 < 5 { 
 				addx = 1;
-				if myship.v.1 > 0 {addy = -1;}
+				if myship.v.1 > 2 {addy = -1;}
 			}
 		}
 	}
@@ -132,6 +132,11 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 
 	if addy != 0 || addx != 0 {accelerate_flag = true; }
 	if myship.heat <= myship.max_heat - 60 {shoot_flag = true;}
+
+	let maxlen = (myship.pos.0-enemyship.pos.0).abs().max( (myship.pos.1-enemyship.pos.1).abs());
+	let minlen = (myship.pos.0-enemyship.pos.0).abs().min( (myship.pos.1-enemyship.pos.1).abs());
+
+	if maxlen * 1 / 10 >= minlen && maxlen * 9 / 10 <= minlen {shoot_flag = false;}
 
 	eprintln!("debug {} {} {} {} {} {} {}", myship.status.energy, myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, addx, addy);
 
