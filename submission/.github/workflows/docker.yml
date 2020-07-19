@@ -18,7 +18,7 @@ jobs:
             docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
         docker build \
             --tag ${IMAGE_NAME} \
-            --cache-from=imos/icfpc2020:canndidate \
+            --cache-from=imos/icfpc2020:candidate \
             --cache-from=imos/icfpc2020:submission \
             .
         docker tag ${IMAGE_NAME} imos/icfpc2020:candidate
