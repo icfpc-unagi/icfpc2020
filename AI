@@ -1,0 +1,11 @@
+# AI の名前をちゃんと大文字小文字を間違えずに入れる
+# 例:
+#     AI_NAME=app
+#     AI_NAME=chokudAI
+AI_NAME=chokudAI
+
+# AI に追加で渡したいフラグを入れてください
+# 例:
+#     AI_FALGS=()  # 空のときの例
+#     AI_FALGS=(--attacker=chokudai --defender=wata)  # 複数フラグ
+AI_FLAGS=()
