@@ -1,3 +1,4 @@
+use std;
 use num::*;
 use std::collections::*;
 use std::rc::Rc;
@@ -53,44 +54,61 @@ pub struct Data {
 	pub cache2: Vec<Option<E>>,
 }
 
+#[deprecated(note="Please use Evaluator.eval")]
 pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data) -> E {
+	let mut ev = Evaluator::default();
+	ev.map = map.clone();  // fixme: maybe slow
+	ev.data = std::mem::take(data);
+	let out = ev.eval(e, eval_tuple);
+	*data = ev.data;
+	out
+}
+
+#[derive(Default)]
+pub struct Evaluator {
+	pub map: BTreeMap<String, E>,
+	pub data: Data,
+}
+
+impl Evaluator {
+pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 	match e {
 		E::Cloned(a, id) => {
 			if !eval_tuple {
-				if let Some(ref b) = data.cache[*id] {
+				if let Some(ref b) = self.data.cache[*id] {
 					b.clone()
 				} else {
-					let b = eval(a.as_ref(), map, eval_tuple, data);
-					data.cache[*id] = Some(b.clone());
+					let b = self.eval(a.as_ref(), eval_tuple);
+					self.data.cache[*id] = Some(b.clone());
 					b
 				}
 			} else {
-				if let Some(ref b) = data.cache2[*id] {
+				if let Some(ref b) = self.data.cache2[*id] {
 					b.clone()
 				} else {
-					let b = eval(a.as_ref(), map, eval_tuple, data);
-					data.cache2[*id] = Some(b.clone());
+					let b = self.eval(a.as_ref(), eval_tuple);
+					self.data.cache2[*id] = Some(b.clone());
 					b
 				}
 			}
 		}
 		E::Ap(x1, y1) => {
-			let x1 = eval(&x1, map, eval_tuple, data);
+			let x1 = self.eval(&x1, eval_tuple);
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Etc(name) if name == "cons" => {
 						if eval_tuple {
 							E::Pair(
-								eval(y2, map, eval_tuple, data).into(),
-								eval(y1, map, eval_tuple, data).into(),
+								self.eval(y2, eval_tuple).into(),
+								self.eval(y1, eval_tuple).into(),
 							)
 						} else {
 							E::Pair(y2.clone(), y1.clone().into())
 						}
 					}
 					E::Etc(name) if name == "eq" => {
-						let y1 = eval(&y1, map, eval_tuple, data);
-						let y2 = eval(&y2, map, eval_tuple, data);
+						let y1 = self.eval(&y1, eval_tuple);
+						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => {
 								if y1 == y2 {
@@ -102,35 +120,35 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 							_ => panic!("eq with {} and {} is invalid", y2, y1),
 						}
 					}
-					E::Etc(name) if name == "t" => eval(&y2, map, eval_tuple, data),
-					E::Etc(name) if name == "f" => eval(&y1, map, eval_tuple, data),
+					E::Etc(name) if name == "t" => self.eval(&y2, eval_tuple),
+					E::Etc(name) if name == "f" => self.eval(&y1, eval_tuple),
 					E::Etc(name) if name == "add" => {
-						let y1 = eval(&y1, map, eval_tuple, data);
-						let y2 = eval(&y2, map, eval_tuple, data);
+						let y1 = self.eval(&y1, eval_tuple);
+						let y2 = self.eval(&y2, eval_tuple);
 						match (y1, y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y1 + y2),
 							(y1, y2) => panic!("add with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "mul" => {
-						let y1 = eval(&y1, map, eval_tuple, data);
-						let y2 = eval(&y2, map, eval_tuple, data);
+						let y1 = self.eval(&y1, eval_tuple);
+						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y1 * y2),
 							_ => panic!("mul with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "div" => {
-						let y1 = eval(&y1, map, eval_tuple, data);
-						let y2 = eval(&y2, map, eval_tuple, data);
+						let y1 = self.eval(&y1, eval_tuple);
+						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => E::Num(y2 / y1),
 							_ => panic!("div with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Etc(name) if name == "lt" => {
-						let y1 = eval(&y1, map, eval_tuple, data);
-						let y2 = eval(&y2, map, eval_tuple, data);
+						let y1 = self.eval(&y1, eval_tuple);
+						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => {
 								if y2 < y1 {
@@ -143,38 +161,32 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 						}
 					}
 					E::Ap(x3, y3) => match x3.as_ref() {
-						E::Etc(name) if name == "b" => eval(
+						E::Etc(name) if name == "b" => self.eval(
 							&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
-							map,
 							eval_tuple,
-							data,
 						),
-						E::Etc(name) if name == "c" => eval(
+						E::Etc(name) if name == "c" => self.eval(
 							&E::Ap(Rc::new(E::Ap(y3.clone(), y1.clone())), y2.clone()),
-							map,
 							eval_tuple,
-							data,
 						),
 						E::Etc(name) if name == "s" => {
-							let id = data.cache.len();
-							data.cache.push(None);
-							data.cache2.push(None);
-							eval(
+							let id = self.data.cache.len();
+							self.data.cache.push(None);
+							self.data.cache2.push(None);
+							self.eval(
 								&E::Ap(
 									Rc::new(E::Ap(y3.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
 									Rc::new(E::Ap(y2.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
 								),
-								map,
 								eval_tuple,
-								data,
 							)
 						}
 						E::Etc(name) if name == "if0" => {
-							if let E::Num(a) = eval(y3, map, eval_tuple, data) {
+							if let E::Num(a) = self.eval(y3, eval_tuple) {
 								if a.is_zero() {
-									eval(y2, map, eval_tuple, data)
+									self.eval(y2, eval_tuple)
 								} else {
-									eval(y1, map, eval_tuple, data)
+									self.eval(y1, eval_tuple)
 								}
 							} else {
 								panic!("if0 with {}, {} and {} is invalid", y3, y2, y1)
@@ -184,49 +196,47 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 					},
 					_ => E::Ap(x1.clone().into(), y1.clone().into()),
 				},
-				E::Pair(a, b) => eval(
+				E::Pair(a, b) => self.eval(
 					&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
-					map,
 					eval_tuple,
-					data,
 				),
 				E::Etc(name) if name == "inc" => {
-					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
+					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(a + 1)
 					} else {
 						panic!("inc with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "dec" => {
-					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
+					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(a - 1)
 					} else {
 						panic!("dec with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "neg" => {
-					if let E::Num(a) = eval(y1, map, eval_tuple, data) {
+					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(-a)
 					} else {
 						panic!("neg with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "car" => {
-					if let E::Pair(a, _) = eval(y1, map, eval_tuple, data) {
-						eval(&a, map, eval_tuple, data)
+					if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
+						self.eval(&a, eval_tuple)
 					} else {
 						panic!("car with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "cdr" => {
-					if let E::Pair(_, a) = eval(y1, map, eval_tuple, data) {
-						eval(&a, map, eval_tuple, data)
+					if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
+						self.eval(&a, eval_tuple)
 					} else {
 						panic!("cdr with {} is invalid", y1);
 					}
 				}
 				E::Etc(name) if name == "isnil" => {
-					let y1 = eval(y1, map, eval_tuple, data);
+					let y1 = self.eval(y1, eval_tuple);
 					if let E::Etc(name) = y1 {
 						if name == "nil" {
 							E::Etc("t".to_owned())
@@ -239,25 +249,28 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 						panic!("isnil with {} is invalid", y1);
 					}
 				}
-				E::Etc(name) if name == "i" => eval(y1.as_ref(), map, eval_tuple, data),
+				E::Etc(name) if name == "i" => self.eval(y1.as_ref(), eval_tuple),
 				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
 		E::Etc(name) if name.starts_with(":") => {
-			*data.count.entry(name.clone()).or_insert(0) += 1;
-			if map.contains_key(name) {
-				eval(&map[name], map, eval_tuple, data)
+			*self.data.count.entry(name.clone()).or_insert(0) += 1;
+			if let Some(func_ref) = self.map.get(name) {
+				let func = func_ref.clone();
+				let func_ref = &func;  // fixme
+				self.eval(func_ref, eval_tuple)
 			} else {
 				panic!("no such function: {}", name)
 			}
 		}
 		E::Pair(a, b) if eval_tuple => E::Pair(
-			eval(a, map, eval_tuple, data).into(),
-			eval(b, map, eval_tuple, data).into(),
+			self.eval(a, eval_tuple).into(),
+			self.eval(b, eval_tuple).into(),
 		),
 		e => e.clone(),
 	}
+}
 }
 
 pub fn simplify(e: &E) -> E {
