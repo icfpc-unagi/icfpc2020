@@ -3,34 +3,44 @@ use std::io::prelude::*;
 use app::parser::*;
 use app::sender::*;
 use std::rc::Rc;
+use structopt::StructOpt;
 
 use app::*;
 
+#[derive(structopt::StructOpt, Debug)]
+struct Args {
+	#[structopt(long, default_value = "")]
+	init_state: String,
+}
+
+fn prepare_init_state(args: Args) -> E {
+	if args.init_state.is_empty() {
+		parser::parse(&["nil"], 0).0
+	} else {
+		let mut init_state = std::fs::File::open(args.init_state).unwrap();
+		let mut state = String::new();
+		init_state.read_to_string(&mut state).expect("ini_state read error");
+		parser::parse_lisp(&state).0
+	}
+}
+
 fn run() {
+	let args = Args::from_args();
+	println!("Args: {:?}", &args);
+
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
-	let mut functions_vec = Vec::new();
+	let mut functions = std::collections::BTreeMap::new();
 	for line in f.lines() {
 		let line = line.unwrap();
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let name = ss[0].to_owned();
 		let (exp, n) = parse(&ss[2..], 0);
 		assert_eq!(n, ss.len() - 2);
-		functions_vec.push((name, exp));
-	}
-	let mut functions = std::collections::BTreeMap::new();
-	let mut parser_data = app::parser::Data::default();
-	for (name, exp) in functions_vec.iter().cloned() {
-		let id = parser_data.cache.len();
-		parser_data.cache.push(None);
-		parser_data.cache2.push(None);
-		let exp = app::parser::E::Cloned(Rc::new(exp), id);
 		functions.insert(name, exp);
 	}
-	let mut init_state = std::fs::File::open("data/init_state.txt").unwrap();
-	let mut state = String::new();
-	init_state.read_to_string(&mut state).expect("ini_state read error");
-	let mut state = parser::parse_lisp(&state).0;
+
+	let mut state = prepare_init_state(args);
 	state = E::Etc("nil".to_owned());  // debug
 
 	let mut stack = vec![];
@@ -39,7 +49,7 @@ fn run() {
 	let mut current_data = E::Num(0.into());
 	for iter in 0.. {
 		let (x, y) = if iter == 0 {
-			(0, 0)
+			(9999, 9999)
 		} else {
 			let mut line = String::new();
 			let bytes = stdin.read_line(&mut line).unwrap();
@@ -70,12 +80,12 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		parser_data.reset(functions.len());
-		let f = eval(&exp, &functions, false, &mut parser_data);
-		let sum_count: usize = parser_data.count.values().sum();
+		let mut data = app::parser::Data::default();
+		let f = eval(&exp, &functions, false, &mut data);
+		let sum_count: usize = data.count.values().sum();
 		eprintln!("{}", sum_count);
-		let f = eval(&f, &functions, true, &mut parser_data);
-		let sum_count: usize = parser_data.count.values().sum();
+		let f = eval(&f, &functions, true, &mut data);
+		let sum_count: usize = data.count.values().sum();
 		eprintln!("{}", sum_count);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
@@ -105,7 +115,7 @@ fn run() {
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				parser_data.reset(functions.len());
+				let mut parser_data = app::parser::Data::default();
 				let f = eval(&exp, &functions, false, &mut parser_data);
 				let f = eval(&f, &functions, true, &mut parser_data);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {

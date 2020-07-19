@@ -53,15 +53,6 @@ pub struct Data {
 	pub cache2: Vec<Option<E>>,
 }
 
-impl Data {
-	pub fn reset(&mut self, n: usize) {
-		self.count.clear();
-		assert!(self.cache.len() >= n);
-		self.cache.resize(n, None);
-		self.cache2.resize(n, None);
-	}
-}
-
 pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data) -> E {
 	match e {
 		E::Cloned(a, id) => {
