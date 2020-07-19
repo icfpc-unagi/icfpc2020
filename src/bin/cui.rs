@@ -120,6 +120,7 @@ fn run() {
 				let resp = send(&modulated);
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
+				eprintln!("resp(lisp): {}", &resp);
 				let exp = E::Ap(
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
