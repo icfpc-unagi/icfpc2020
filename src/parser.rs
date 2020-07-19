@@ -16,6 +16,35 @@ pub enum E {
 	Cons,
 	Other(String),
 	Cloned(Rc<E>, usize),
+	List(Rc<Vec<Rc<E>>>, usize),
+}
+
+impl E {
+	fn destruct_list(self) -> E {
+		match self {
+			E::List(list, k) => {
+				if k < list.len() {
+					let head = Rc::clone(&list[0]);
+					let tail = Rc::new(E::List(Rc::clone(&list), k+1));
+					E::Pair(head, tail)
+				} else {
+					assert_eq!(k, list.len());
+					E::Nil
+				}
+			}
+			e => e,
+		}
+	}
+
+	fn construct_list(&self) -> E {
+		if let Some(vec) = get_list(self) {
+			assert!(vec.len() > 100);  // do not use this function if speed doesn't matter
+			let vec = Rc::new(vec);
+			E::List(vec, 0)
+		} else {
+			panic!()
+		}
+	}
 }
 
 pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
@@ -109,7 +138,7 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 			}
 		}
 		E::Ap(x1, y1) => {
-			let x1 = self.eval(&x1, eval_tuple);
+			let x1 = self.eval(&x1, eval_tuple).destruct_list();
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Cons => {
@@ -216,6 +245,18 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 					&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
 					eval_tuple,
 				),
+				/*
+				E::List(list, k) => {
+					if let E::Pair(a, b) = destruct_list(list, k) {
+						self.eval(
+							&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
+							eval_tuple,
+						)
+					} else {
+						panic!()
+					}
+				}
+				*/
 				E::Other(name) if name == "inc" => {
 					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(a + 1)
@@ -238,21 +279,21 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 					}
 				}
 				E::Other(name) if name == "car" => {
-					if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
+					if let E::Pair(a, _) = self.eval(y1, eval_tuple).destruct_list() {
 						self.eval(&a, eval_tuple)
 					} else {
 						panic!("car with {} is invalid", y1);
 					}
 				}
 				E::Other(name) if name == "cdr" => {
-					if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
+					if let E::Pair(_, a) = self.eval(y1, eval_tuple).destruct_list() {
 						self.eval(&a, eval_tuple)
 					} else {
 						panic!("cdr with {} is invalid", y1);
 					}
 				}
 				E::Other(name) if name == "isnil" => {
-					let y1 = self.eval(y1, eval_tuple);
+					let y1 = self.eval(y1, eval_tuple).destruct_list();
 					match y1 {
 						E::Nil => E::T,
 						E::Pair(_, _) => E::F,
@@ -359,6 +400,16 @@ impl std::fmt::Display for E {
 					write!(f, "<{}, {}>", a, b)?
 				}
 			},
+			E::List(list, k) => {
+				write!(f, "list![")?;
+				for i in *k..list.len() {
+					if i > 0 {
+						write!(f, ", ")?;
+					}
+					write!(f, "{}", list[i])?;
+				}
+				write!(f, "]")?;
+			}
 			E::Other(name) => write!(f, "{}", name)?,
 			E::Nil => write!(f, "[]")?,
 			E::T => write!(f, "t")?,
