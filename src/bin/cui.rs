@@ -69,8 +69,7 @@ fn run() {
 				continue;
 			}
 		};
-		let s = format!("ap ap cons {} {}", x, y);
-		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
+		let xy = E::Pair(Rc::new(E::Num(x.into())), Rc::new(E::Num(y.into())));
 		let exp = E::Ap(
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
@@ -98,8 +97,9 @@ fn run() {
 			eprintln!("flag = {}", flag);
 			eprintln!("state: {}", state);
 			while flag {
-				eprintln!("send: {}", app::modulation::modulate(&data));
-				let resp = send(&app::modulation::modulate(&data));
+				let modulated = app::modulation::modulate(&data);
+				eprintln!("send: {}", &modulated);
+				let resp = send(&modulated);
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
 				let exp = E::Ap(
