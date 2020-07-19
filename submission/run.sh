@@ -16,5 +16,6 @@ cat /proc/cpuinfo
 
 ./target/release/cui \
 	--init-state ./data/performance_test-init_state.txt \
+	${EXTRA_FLASG:-} \
 	<./data/performance_test-input.txt || \
 	echo "ERROR: exit_code=$?"
