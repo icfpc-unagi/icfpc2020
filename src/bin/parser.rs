@@ -31,7 +31,7 @@ fn run() {
 		let s = if last_flag == 0 { "ap ap cons 1 ap ap cons 80000 nil".to_owned() } else { format!("ap ap cons {} {}", x, y) };
 		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
 		let exp = E::Ap(
-			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
+			Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
 			xy.into(),
 		);
 		let mut data = app::parser::Data::default();

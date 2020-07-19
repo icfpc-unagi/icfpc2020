@@ -20,7 +20,7 @@ fn run() {
     // 	let f = eval(&functions[id], &functions, false);
     // 	println!("{}: {}", id, f);
     // }
-    let mut state = E::Etc("nil".to_owned());
+    let mut state = E::Etc(Etc::Nil);
     let mut rng = rand::thread_rng();
     let mut data = app::parser::Data::default();
 
@@ -37,7 +37,7 @@ fn run() {
 
         let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
         let exp = E::Ap(
-            Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
+            Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
             xy.into(),
         );
         let f = eval(&exp, &functions, false, &mut data);
