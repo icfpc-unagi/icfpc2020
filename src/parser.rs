@@ -23,6 +23,7 @@ impl E {
 	fn destruct_list(self) -> E {
 		match self {
 			E::List(list, k) => {
+				// eprintln!("yes");
 				if k < list.len() {
 					let head = Rc::clone(&list[0]);
 					let tail = Rc::new(E::List(Rc::clone(&list), k+1));
@@ -36,7 +37,7 @@ impl E {
 		}
 	}
 
-	fn construct_list(&self) -> E {
+	pub fn construct_list(&self) -> E {
 		if let Some(vec) = get_list(self) {
 			assert!(vec.len() > 100);  // do not use this function if speed doesn't matter
 			let vec = Rc::new(vec);

@@ -51,6 +51,18 @@ fn run() {
 		evaluator.insert_function(name, exp);
 	}
 
+	// convert long list(s)
+	// ask tos
+	for name in &[
+		":1104",
+	] {
+		// let name = ":1104".to_owned();
+		let name = (*name).to_owned();
+		let e1104 = evaluator.map.get(&name).unwrap().clone();
+		let e1104 = evaluator.eval(&e1104, true).construct_list();
+		*evaluator.map.get_mut(&name).unwrap() = e1104;
+	}
+
 	// FOR PERFORMANCE TEST.
 	let mut expected_requests = vec![
 		"11011000011101000",
