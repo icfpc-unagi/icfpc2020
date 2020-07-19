@@ -6,19 +6,11 @@ use std::vec::Vec;
 const GRADIENT: colorous::Gradient = colorous::TURBO;
 
 pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
-	let mut out = Vec::new();
-	for i in e {
-		out.push(i.into());
-	}
-	out
+	e.into_iter().map(|e| e.into()).collect()
 }
 
 pub fn translate_to_vecvec(e: &E) -> Vec<Vec<(BigInt, BigInt)>> {
-	let mut out = Vec::new();
-	for i in e {
-		out.push(translate_to_vec(i));
-	}
-	out
+	e.into_iter().map(|e| translate_to_vec(&e)).collect()
 }
 
 pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> DynamicImage {
@@ -112,31 +104,12 @@ fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
 	)
 }
 fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
+	let it = vv.iter().map(|loc| loc.iter()).flatten();
 	let (min_x, max_x, min_y, max_y) = (
-		vv.iter()
-			.map(|loc| loc.iter())
-			.flatten()
-			.map(|c| &c.0)
-			.min()
-			.unwrap(),
-		vv.iter()
-			.map(|loc| loc.iter())
-			.flatten()
-			.map(|c| &c.0)
-			.max()
-			.unwrap(),
-		vv.iter()
-			.map(|loc| loc.iter())
-			.flatten()
-			.map(|c| &c.1)
-			.min()
-			.unwrap(),
-		vv.iter()
-			.map(|loc| loc.iter())
-			.flatten()
-			.map(|c| &c.1)
-			.max()
-			.unwrap(),
+		it.clone().map(|c| &c.0).min().unwrap(),
+		it.clone().map(|c| &c.0).max().unwrap(),
+		it.clone().map(|c| &c.1).min().unwrap(),
+		it.clone().map(|c| &c.1).max().unwrap(),
 	);
 	(
 		(
