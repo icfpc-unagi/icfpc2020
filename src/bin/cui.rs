@@ -99,6 +99,11 @@ fn run() {
 				}
 
 				continue;
+			} else if ss.len() == 1 && ss[0] == "stat" {
+				for i in 1029..1495 {
+					eprintln!("{}: {}", i, ev.count[i]);
+				}
+				continue;
 			} else if ss.len() != 2 {
 				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
 				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
@@ -198,9 +203,6 @@ fn run() {
 		} else {
 			eprintln!("orz");
 		}
-	}
-	for i in 1029..1495 {
-		eprintln!("{}: {}", i, ev.count[i]);
 	}
 }
 
