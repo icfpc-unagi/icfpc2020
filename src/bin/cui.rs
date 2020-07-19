@@ -15,6 +15,8 @@ struct Args {
 	init_state: String,
 	#[structopt(long)]
 	recognize: bool,
+	#[structopt(long)]
+	performance_test: bool,
 }
 
 fn prepare_init_state(args: &Args) -> E {
@@ -46,6 +48,17 @@ fn run() {
 		evaluator.insert_function(name, exp);
 	}
 
+	// FOR PERFORMANCE TEST.
+	let mut expected_requests = vec![
+		"11011000011101000",
+		"11011000101101111111111111111100010100110100111101100000000110001010100010001110110011101101100110000",
+	];
+	expected_requests.reverse();
+	let mut expected_responses = vec![
+		"11011000011111110101101111111111111111100010100110100111101100000000110001010100010001110110011101101100001111011000011101111111111111111100111000101100111111101000101101000111101010001010010110101111011000000",
+	];
+	expected_responses.reverse();
+
 	let mut state = prepare_init_state(&args);
 
 	let mut stack = vec![];
@@ -66,8 +79,8 @@ fn run() {
 			}
 			let bytes = stdin.read_line(&mut line).unwrap();
 			if bytes == 0 {
-			        eprintln!("EOF");
-			        return;
+				eprintln!("EOF");
+				return;
 			}
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
@@ -117,7 +130,21 @@ fn run() {
 			while flag {
 				let modulated = app::modulation::modulate(&data);
 				eprintln!("send: {}", &modulated);
-				let resp = send(&modulated);
+				let resp = if args.performance_test {
+					let expected = expected_requests.pop().unwrap();
+					if expected != modulated {
+						panic!("Unexpected input: expected={}, actual={}", expected, modulated);
+					}
+					match expected_responses.pop() {
+						Some(x) => x.to_owned(),
+						_ => {
+							println!("Successfully, the response stack has become empty.");
+							std::process::exit(0);
+						},
+					}
+				} else {
+					send(&modulated)
+				};
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
 				eprintln!("resp(lisp): {}", &resp);
