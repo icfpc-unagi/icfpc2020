@@ -27,6 +27,6 @@ bash script/build-submission.sh
 
 pushd build/submission
 git add -A
-git commit -am "${DATETIME}-${COMMIT_ID}"$'\n'"${COMMIT_MSG}"
+git commit --allow-empty -am "${DATETIME}-${COMMIT_ID}"$'\n'"${COMMIT_MSG}"
 git push --set-upstream origin "candidates/${DATETIME}-${COMMIT_ID}"
 popd
