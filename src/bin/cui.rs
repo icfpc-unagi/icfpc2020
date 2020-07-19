@@ -88,7 +88,11 @@ fn run() {
 		// let name = ":1104".to_owned();
 		let name = (*name).to_owned();
 		let e1104 = evaluator.map.get(&name).unwrap().clone();
-		let e1104 = evaluator.eval(&e1104, true).construct_list();
+		let e1104 = evaluator.eval(&e1104, true);
+		let str1 = format!("list!{}", &e1104);  // debug
+		let e1104 = e1104.construct_list();
+		let str2 = format!("{}", &e1104);  // debug
+		assert_eq!(str1, str2);  // debug
 		*evaluator.map.get_mut(&name).unwrap() = e1104;
 	}
 
@@ -176,6 +180,11 @@ fn run() {
 		} else {
 			panic!();
 		};
+		println!("iter = {}", iter);
+		println!("flag = {}", flag);
+		println!("new_state = {}", &new_state);
+		println!("data = {}", &data);
+		println!("");
 		if flag || state != new_state || iter == 0 {
 			stack.push((state.clone(), current_data.clone()));
 			state = new_state;
