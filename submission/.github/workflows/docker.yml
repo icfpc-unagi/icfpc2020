@@ -1,0 +1,31 @@
+name: DockerPush
+
+on:
+    push:
+      branches: [ submission ]
+    pull_request:
+      branches: [ submission ]
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+        IMAGE_NAME=imos/icfpc2020:$(git rev-parse --short "$GITHUB_SHA")
+        echo ${{ secrets.DOCKER_PASSWORD }} | \
+            docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker build \
+            --tag ${IMAGE_NAME} \
+            --cache-from=imos/icfpc2020:canndidate \
+            --cache-from=imos/icfpc2020:submission \
+            .
+        docker tag ${IMAGE_NAME} imos/icfpc2020:candidate
+        docker push ${IMAGE_NAME}
+        docker push imos/icfpc2020:candidate
+    - name: push-submission
+      run: |
+        docker tag imos/icfpc2020:candidate imos/icfpc2020:submission
+        docker push imos/icfpc2020:submission
+      if: ${{ github.event_name == 'push' }}
