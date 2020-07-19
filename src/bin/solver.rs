@@ -19,11 +19,11 @@ fn run() {
 		functions.insert(name, exp);
 	}
 	
-	let mut state = E::Etc(Etc::Nil);
+	let mut state = E::Nil;
 	eprintln!("{}", state);
 	let mut rng = rand::thread_rng();
 	let mut iter = 0;
-	let mut last_data = E::Etc(Etc::Nil);
+	let mut last_data = E::Nil;
 	loop {
 		let (x, y) = if iter > 15 {
 			let es = last_data.into_iter().nth(0).unwrap().into_iter().collect::<Vec<_>>();
@@ -43,7 +43,7 @@ fn run() {
 		let s = format!("ap ap cons {} {}", x, y);
 		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
 		let exp = E::Ap(
-			Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
+			Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
 		let mut data = app::parser::Data::default();
@@ -79,7 +79,7 @@ fn run() {
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
 				let exp = E::Ap(
-					Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
+					Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
 				let mut parser_data = app::parser::Data::default();

@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::string::*;
 use crate::parser::Int;
 
-use super::parser::{E, Etc};
+use super::parser::E;
 
 pub fn modulate(e: &E) -> String {
 	modulate_mod(&Mod::from(e))
@@ -28,7 +28,7 @@ enum Mod {
 impl From<&E> for Mod {
 	fn from(e: &E) -> Self {
 		match e {
-			E::Etc(Etc::Nil) => Mod::Nil,
+			E::Nil => Mod::Nil,
 			E::Num(i) => Mod::Num((*i).into()),
 			E::Pair(a, b) | E::Ap(a, b) => Mod::Pair(
 				Box::new(Mod::from(a.as_ref())),
@@ -42,7 +42,7 @@ impl From<&E> for Mod {
 impl Into<E> for &Mod {
 	fn into(self) -> E {
 		match self {
-			Mod::Nil => E::Etc(Etc::Nil),
+			Mod::Nil => E::Nil,
 			Mod::Num(i) => E::Num(i.to_i128().unwrap()),
 			Mod::Pair(a, b) => E::Pair(Rc::new(a.as_ref().into()), Rc::new(b.as_ref().into())),
 		}
