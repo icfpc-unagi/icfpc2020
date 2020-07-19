@@ -103,8 +103,13 @@ pub struct Client {
 
 impl Client {
 	pub fn new(server_url: String) -> Self {
+		let server_url = if server_url.contains("?apiKey") {
+			server_url
+		} else {
+			server_url + "/aliens/send"
+		};
 		Self {
-			server_url: server_url + "/aliens/send",
+			server_url,
 			player_key: String::new(),
 			client: reqwest::Client::new()
 		}
