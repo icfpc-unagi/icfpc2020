@@ -8,5 +8,10 @@ export JUDGE_SERVER=1
 
 source ./AI
 
-./app "${AI_FLAGS[@]}" ${EXTRA_FLAGS:-} "$@" || \
+args=(./app)
+if [ "${#AI_FLAGS[*]}" -ne 0 ]; then
+	args+=("${AI_FLAGS[@]}")
+fi
+
+"${args[@]}" ${EXTRA_FLAGS:-} "$@" || \
 	echo "ERROR: exit_code=$?"
