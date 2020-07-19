@@ -5,11 +5,11 @@ use app::sender::*;
 use std::rc::Rc;
 
 type E = app::parser::E;
-fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>) -> E {
+fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>, data: &mut app::parser::Data) -> E {
 	let now = ::std::time::Instant::now();
-	let mut data = app::parser::Data::default();
-	let f = eval(&exp, &functions, false, &mut data);
-	let f = eval(&f, &functions, true, &mut data);
+	data.reset(functions.len());
+	let f = eval(&exp, &functions, false, data);
+	let f = eval(&f, &functions, true, data);
 	let dur = now.elapsed();
 	eprintln!("{:.6} sec", dur.as_secs_f64());
 	f
@@ -18,13 +18,22 @@ fn eval1(exp: &E, functions: &::std::collections::BTreeMap<String, E>) -> E {
 fn run() {
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
-	let mut functions = std::collections::BTreeMap::new();
+	let mut functions_vec = Vec::new();
 	for line in f.lines() {
 		let line = line.unwrap();
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let name = ss[0].to_owned();
 		let (exp, n) = parse(&ss[2..], 0);
 		assert_eq!(n, ss.len() - 2);
+		functions_vec.push((name, exp));
+	}
+	let mut functions = std::collections::BTreeMap::new();
+	let mut parser_data = app::parser::Data::default();
+	for (name, exp) in functions_vec.iter().cloned() {
+		let id = parser_data.cache.len();
+		parser_data.cache.push(None);
+		parser_data.cache2.push(None);
+		let exp = app::parser::E::Cloned(Rc::new(exp), id);
 		functions.insert(name, exp);
 	}
 	let mut state = E::Etc("nil".to_owned());
@@ -65,7 +74,7 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		let f = eval1(&exp, &functions);
+		let f = eval1(&exp, &functions, &mut parser_data);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
 				if let E::Pair(data, _) = b.as_ref() {
@@ -94,7 +103,7 @@ fn run() {
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				let f = eval1(&exp, &functions);
+				let f = eval1(&exp, &functions, &mut parser_data);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {
 					if let E::Pair(a, b) = a.as_ref() {
 						if let E::Pair(data, _) = b.as_ref() {
