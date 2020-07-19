@@ -14,15 +14,15 @@ pub struct Response {
 pub struct Info {
 	pub x0: i32,
 	pub role: i32,
-	pub x2: Vec<E>,
-	pub x3: Vec<E>,
+	pub x2: Vec<i32>,
+	pub x3: Vec<i32>,
 	pub opponent_params: Params,
 }
 
 #[derive(Debug, Clone)]
 pub struct State {
 	pub tick: i32,
-	pub x1: E,
+	pub x1: Vec<i32>,
 	pub ships: Vec<Ship>
 }
 
@@ -163,8 +163,8 @@ pub fn parse(e: E) -> Response {
 	let info = get_list(&a[2]).unwrap();
 	let x0 = get_num(&info[0]);
 	let role = get_num(&info[1]);
-	let x2 = get_list(&info[2]).unwrap().into_iter().map(|e| e.as_ref().clone()).collect();
-	let x3 = get_list(&info[3]).unwrap().into_iter().map(|e| e.as_ref().clone()).collect();
+	let x2 = get_list(&info[2]).unwrap().into_iter().map(|e| get_num(&e)).collect();
+	let x3 = get_list(&info[3]).unwrap().into_iter().map(|e| get_num(&e)).collect();
 	let params = get_list(&info[4]).unwrap().into_iter().map(|e| get_num(&e)).collect::<Vec<_>>();
 	let opponent_params = if params.len() != 4 {
 		Params {
@@ -184,7 +184,7 @@ pub fn parse(e: E) -> Response {
 	let state = get_list(&a[3]).unwrap();
 	let (tick, x1, ships) = if state.len() > 0 {
 		let tick = get_num(&state[0]);
-		let x1 = state[1].as_ref().clone();
+		let x1 = get_list(&state[1]).unwrap().into_iter().map(|e| get_num(&e)).collect();
 		let ships = get_list(&state[2]).unwrap().into_iter().map(|a| {
 			let tmp = get_list(&a).unwrap();
 			let s = get_list(&tmp[0]).unwrap();
@@ -238,7 +238,7 @@ pub fn parse(e: E) -> Response {
 		}).collect();
 		(tick, x1, ships)
 	} else {
-		(0, E::Nil, vec![])
+		(0, vec![], vec![])
 	};
 	Response {
 		stage,
