@@ -2,7 +2,9 @@ use std::io::prelude::*;
 
 use app::parser::*;
 use app::sender::*;
+use app;
 use std::rc::Rc;
+use std;
 use structopt::StructOpt;
 
 use app::*;
@@ -13,6 +15,8 @@ struct Args {
 	init_state: String,
 	#[structopt(long)]
 	recognize: bool,
+	#[structopt(long)]
+	performance_test: bool,
 }
 
 fn prepare_init_state(args: &Args) -> E {
@@ -35,15 +39,28 @@ fn run() {
 
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
-	let mut functions = std::collections::BTreeMap::new();
+	let mut evaluator = app::parser::Evaluator::default();
+	// let mut functions = std::collections::BTreeMap::new();
 	for line in f.lines() {
 		let line = line.unwrap();
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let name = ss[0].to_owned();
 		let (exp, n) = parse(&ss[2..], 0);
 		assert_eq!(n, ss.len() - 2);
-		functions.insert(name, exp);
+		// functions.insert(name, exp);
+		evaluator.insert_function(name, exp);
 	}
+
+	// FOR PERFORMANCE TEST.
+	let mut expected_requests = vec![
+		"11011000011101000",
+		"11011000101101111111111111111100010100110100111101100000000110001010100010001110110011101101100110000",
+	];
+	expected_requests.reverse();
+	let mut expected_responses = vec![
+		"11011000011111110101101111111111111111100010100110100111101100000000110001010100010001110110011101101100001111011000011101111111111111111100111000101100111111101000101101000111101010001010010110101111011000000",
+	];
+	expected_responses.reverse();
 
 	let mut state = prepare_init_state(&args);
 
@@ -57,8 +74,19 @@ fn run() {
 		} else {
 			let mut line = String::new();
 			let _ = stdin.read_line(&mut line).unwrap();
-
 			let line = recognition_result.filter_command(line.trim());
+			if let Ok(_) = std::env::var("GUI") {
+				print!("###GUI###\t");
+				let list_of_list_of_coords = app::visualize::collect_list_of_list_of_coords(&current_data);
+				let ((w, h), offset) = app::draw::range_vv(&list_of_list_of_coords);
+				print!("w:{}\th:{}\tx:{}\ty:{}", w, h, offset.0, offset.1);
+				println!();
+			}
+			let bytes = stdin.read_line(&mut line).unwrap();
+			if bytes == 0 {
+				eprintln!("EOF");
+				return;
+			}
 
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
@@ -66,6 +94,7 @@ fn run() {
 				state = prev_state;
 				current_data = prev_data;
 				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
 				continue;
 			} else if ss.len() != 2 {
 				eprintln!("illegal input");
@@ -82,9 +111,9 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		let mut data = app::parser::Data::default();
-		let f = eval(&exp, &functions, false, &mut data);
-		let f = eval(&f, &functions, true, &mut data);
+		let mut ev = evaluator.clone();
+		let f = ev.eval(&exp, false);
+		let f = ev.eval(&f, true);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
 				if let E::Pair(data, _) = b.as_ref() {
@@ -107,16 +136,31 @@ fn run() {
 			while flag {
 				let modulated = app::modulation::modulate(&data);
 				eprintln!("send: {}", &modulated);
-				let resp = send(&modulated);
+				let resp = if args.performance_test {
+					let expected = expected_requests.pop().unwrap();
+					if expected != modulated {
+						panic!("Unexpected input: expected={}, actual={}", expected, modulated);
+					}
+					match expected_responses.pop() {
+						Some(x) => x.to_owned(),
+						_ => {
+							println!("Successfully, the response stack has become empty.");
+							std::process::exit(0);
+						},
+					}
+				} else {
+					send(&modulated)
+				};
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
+				eprintln!("resp(lisp): {}", &resp);
 				let exp = E::Ap(
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				let mut parser_data = app::parser::Data::default();
-				let f = eval(&exp, &functions, false, &mut parser_data);
-				let f = eval(&f, &functions, true, &mut parser_data);
+				let mut ev = evaluator.clone();
+				let f = ev.eval(&exp, false);
+				let f = ev.eval(&f, true);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {
 					if let E::Pair(a, b) = a.as_ref() {
 						if let E::Pair(data, _) = b.as_ref() {
@@ -138,6 +182,7 @@ fn run() {
 				eprintln!("state: {}", state);
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
 
 			if args.recognize {
 				app::visualize::multidraw_from_e(&data);
