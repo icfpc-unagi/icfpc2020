@@ -18,6 +18,7 @@ popd
 
 cp -a src build/submission/src
 cp -a data build/submission/data
+cp -a AI build/submission/AI
 cp -a Cargo.toml Cargo.lock build/submission/
 cp -a submission/* build/submission/
 
