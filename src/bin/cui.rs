@@ -74,7 +74,7 @@ fn run() {
 			let bytes = stdin.read_line(&mut line).unwrap();
 			if bytes == 0 {
 				eprintln!("EOF");
-				return;
+				break;
 			}
 			let line = recognition_result.filter_command(line.trim());
 
@@ -185,6 +185,9 @@ fn run() {
 		} else {
 			eprintln!("orz");
 		}
+	}
+	for i in 1029..1495 {
+		eprintln!("{}: {}", i, ev.count[i]);
 	}
 }
 
