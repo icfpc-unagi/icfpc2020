@@ -39,7 +39,11 @@ impl E {
 					if k + 1 == list.len() {
 						E::Nil
 					} else {
-						E::List(Rc::clone(&list), k+1)
+						let len = list.len() - (k + 1);
+						if len < 10 {
+							eprintln!("warning: short vec (length = {})", len);
+						}
+						E::List(Rc::clone(&list), k + 1)
 					}
 				);
 				E::Pair(head, tail)
@@ -50,7 +54,7 @@ impl E {
 
 	fn try_into_list(&self) -> Option<E> {
 		if let Some(vec) = get_list(self) {
-			if false && vec.len() > 10 {  // debug!
+			if vec.len() > 20 {
 				eprintln!("{}", vec.len());
 				let vec = Rc::new(vec);
 				return Some(E::List(vec, 0));
