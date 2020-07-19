@@ -3,10 +3,31 @@ use std::io::prelude::*;
 use app::parser::*;
 use app::sender::*;
 use std::rc::Rc;
+use structopt::StructOpt;
 
 use app::*;
 
+#[derive(structopt::StructOpt, Debug)]
+struct Args {
+	#[structopt(long, default_value = "")]
+	init_state: String,
+}
+
+fn prepare_init_state(args: Args) -> E {
+	if args.init_state.is_empty() {
+		parser::parse(&["nil"], 0).0
+	} else {
+		let mut init_state = std::fs::File::open("data/init_state.txt").unwrap();
+		let mut state = String::new();
+		init_state.read_to_string(&mut state).expect("ini_state read error");
+		parser::parse_lisp(&state).0
+	}
+}
+
 fn run() {
+	let args = Args::from_args();
+	println!("Args: {:?}", &args);
+
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
 	let mut functions_vec = Vec::new();
@@ -27,10 +48,8 @@ fn run() {
 		let exp = app::parser::E::Cloned(Rc::new(exp), id);
 		functions.insert(name, exp);
 	}
-	let mut init_state = std::fs::File::open("data/init_state.txt").unwrap();
-	let mut state = String::new();
-	init_state.read_to_string(&mut state).expect("ini_state read error");
-	let mut state = parser::parse_lisp(&state).0;
+
+	let mut state = prepare_init_state(args);
 
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
