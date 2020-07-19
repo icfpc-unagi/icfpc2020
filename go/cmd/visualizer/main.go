@@ -29,6 +29,11 @@ type Game struct {
 	output chan string
 }
 
+type JsonObject struct {
+	Array []JsonObject
+	Int		int64
+}
+
 var game Game
 var output = make(chan string, 10)
 var outputPool = make([]string, 0)
@@ -138,6 +143,8 @@ func main() {
 	glog.Infof("Starting server (%s)...", addr)
 	http.ListenAndServe(addr, nil)
 }
+
+func Parse(s string) 
 
 func EToJson(s string) string {
 	s = strings.ReplaceAll(s, "[", "@LIST_LEFT@")
