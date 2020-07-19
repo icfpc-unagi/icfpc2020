@@ -1,8 +1,6 @@
 use app::client::*;
 use rand::prelude::*;
 
-struct
-
 fn run(){
 
 	//CREATE
