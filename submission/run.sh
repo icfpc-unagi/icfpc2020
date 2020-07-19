@@ -14,6 +14,6 @@ done
 cat /proc/cpuinfo
 
 ./target/release/cui \
-	--init-state ./data/performance_test-init_test.txt \
+	--init-state ./data/performance_test-init_state.txt \
 	<./data/performance_test-input.txt || \
 	echo "ERROR: exit_code=$?"
