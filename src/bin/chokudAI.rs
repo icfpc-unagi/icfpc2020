@@ -146,8 +146,8 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 
 	if myship.heat <= myship.max_heat - 60 {shoot_flag = true;}
 
-	let maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[0]-next_enemy[1]).abs());
-	let minlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[0]-next_enemy[1]).abs());
+	let maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[1]-next_enemy[1]).abs());
+	let minlen = (next_me[0]-next_enemy[0]).abs().min( (next_me[1]-next_enemy[1]).abs());
 
 	let terrible_angle = (maxlen * 2 / 10 <= minlen) && (maxlen * 8 / 10 >= minlen);
 	let bad_angle = (maxlen * 1 / 10 <= minlen) && (maxlen * 9 / 10 >= minlen);
