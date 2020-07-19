@@ -133,7 +133,7 @@ fn run() {
 				let resp = if args.performance_test {
 					let expected = expected_requests.pop().unwrap();
 					if expected != modulated {
-						println!("Unexpected input: expected={}, actual={}", expected, modulated);
+						panic!("Unexpected input: expected={}, actual={}", expected, modulated);
 					}
 					match expected_responses.pop() {
 						Some(x) => x.to_owned(),
