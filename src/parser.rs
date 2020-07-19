@@ -61,15 +61,15 @@ impl Into<(Int, Int)> for &E {
 }
 
 pub fn eval(e: &E, eval_tuple: bool) -> E {
-	Evaluator::default().eval(e, eval_tuple)
+	Evaluator::default().eval(e, eval_tuple).as_ref().clone()
 }
 
 #[derive(Clone, Default)]
 pub struct Evaluator {
-	pub functions: Vec<E>,
+	pub functions: Vec<Rc<E>>,
 	pub count: Vec<usize>,
-	pub cache: Vec<Option<E>>,
-	pub cache2: Vec<Option<E>>,
+	pub cache: Vec<Option<Rc<E>>>,
+	pub cache2: Vec<Option<Rc<E>>>,
 	pub keep1: Vec<bool>,
 	pub keep2: Vec<bool>,
 	m: usize,
@@ -81,16 +81,18 @@ impl Evaluator {
 		use std::io::prelude::*;
 		let f = std::io::BufReader::new(f);
 		let mut functions = vec![];
+		let dummy_exp = Rc::new(E::Nil);
 		for line in f.lines() {
 			let line = line.unwrap();
 			let ss = line.split_whitespace().collect::<Vec<_>>();
 			let name = ss[0].to_owned();
 			let (exp, n) = parse(&ss[2..], 0);
+			let exp = Rc::new(exp);
 			assert_eq!(n, ss.len() - 2);
 			if name.starts_with(":") {
 				let id = name[1..].parse().unwrap();
 				if functions.len() <= id {
-					functions.resize(id + 1, E::Nil);
+					functions.resize(id + 1, dummy_exp.clone());
 				}
 				functions[id] = exp;
 			}
@@ -99,9 +101,10 @@ impl Evaluator {
 		let mut ev = Evaluator { functions, count: vec![0; n], cache: vec![None; n], cache2: vec![None; n], keep1: vec![true; n], keep2: vec![true; n], m: n };
 		for i in 0..n {
 			let f = ev.functions[i].clone();
-			let f = ev.eval(&f, false);
+			let f = ev.eval(f.as_ref(), false);
 			ev.cache[i] = Some(f.clone());
-			ev.cache2[i] = Some(ev.eval(&f, true));
+			let f = ev.eval(f.as_ref(), true);
+			ev.cache2[i] = Some(f.clone());
 			// eprintln!(":{} = {}", i, ev.cache2[i].clone().unwrap());
 		}
 		ev.m = ev.cache.len();
@@ -128,7 +131,7 @@ impl Evaluator {
 		}
 	}
 	
-	pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
+	pub fn eval(&mut self, e: &E, eval_tuple: bool) -> Rc<E> {
 		match e {
 			E::Cloned(a, id) => {
 				if !eval_tuple {
@@ -151,9 +154,9 @@ impl Evaluator {
 			}
 			E::Ap(x1, y1) => {
 				let x1 = self.eval(&x1, eval_tuple);
-				match &x1 {
+				match x1.as_ref() {
 					E::Ap(x2, y2) => match x2.as_ref() {
-						E::Cons => {
+						E::Cons => Rc::new({
 							if eval_tuple {
 								E::Pair(
 									self.eval(y2, eval_tuple).into(),
@@ -162,11 +165,11 @@ impl Evaluator {
 							} else {
 								E::Pair(y2.clone(), y1.clone().into())
 							}
-						}
-						E::Other(name) if name == "eq" => {
+						}),
+						E::Other(name) if name == "eq" => Rc::new({
 							let y1 = self.eval(&y1, eval_tuple);
 							let y2 = self.eval(&y2, eval_tuple);
-							match (&y1, &y2) {
+							match (y1.as_ref(), y2.as_ref()) {
 								(E::Num(y1), E::Num(y2)) => {
 									if y1 == y2 {
 										E::T
@@ -176,44 +179,44 @@ impl Evaluator {
 								}
 								_ => panic!("eq with {} and {} is invalid", y2, y1),
 							}
-						}
+						}),
 						E::T => self.eval(&y2, eval_tuple),
 						E::F => self.eval(&y1, eval_tuple),
 						E::Other(name) if name == "add" => {
 							let y1 = self.eval(&y1, eval_tuple);
 							let y2 = self.eval(&y2, eval_tuple);
-							match (y1, y2) {
-								(E::Num(y1), E::Num(y2)) => E::Num(y1 + y2),
+							match (y1.as_ref(), y2.as_ref()) {
+								(E::Num(y1), E::Num(y2)) => Rc::new(E::Num(y1 + y2)),
 								(y1, y2) => panic!("add with {} and {} is invalid", y2, y1),
 							}
 						}
 						E::Other(name) if name == "mul" => {
 							let y1 = self.eval(&y1, eval_tuple);
 							let y2 = self.eval(&y2, eval_tuple);
-							match (&y1, &y2) {
-								(E::Num(y1), E::Num(y2)) => E::Num(y1 * y2),
+							match (y1.as_ref(), y2.as_ref()) {
+								(E::Num(y1), E::Num(y2)) => Rc::new(E::Num(y1 * y2)),
 								_ => panic!("mul with {} and {} is invalid", y2, y1),
 							}
 						}
 						E::Other(name) if name == "div" => {
 							let y1 = self.eval(&y1, eval_tuple);
 							let y2 = self.eval(&y2, eval_tuple);
-							match (&y1, &y2) {
-								(E::Num(y1), E::Num(y2)) => E::Num(y2 / y1),
+							match (y1.as_ref(), y2.as_ref()) {
+								(E::Num(y1), E::Num(y2)) => Rc::new(E::Num(y2 / y1)),
 								_ => panic!("div with {} and {} is invalid", y2, y1),
 							}
 						}
 						E::Other(name) if name == "lt" => {
 							let y1 = self.eval(&y1, eval_tuple);
 							let y2 = self.eval(&y2, eval_tuple);
-							match (&y1, &y2) {
-								(E::Num(y1), E::Num(y2)) => {
+							match (y1.as_ref(), y2.as_ref()) {
+								(E::Num(y1), E::Num(y2)) => Rc::new(
 									if y2 < y1 {
 										E::T
 									} else {
 										E::F
 									}
-								}
+								),
 								_ => panic!("lt with {} and {} is invalid", y2, y1),
 							}
 						}
@@ -239,7 +242,7 @@ impl Evaluator {
 								)
 							}
 							E::Other(name) if name == "if0" => {
-								if let E::Num(a) = self.eval(y3, eval_tuple) {
+								if let E::Num(a) = self.eval(y3, eval_tuple).as_ref() {
 									if a.is_zero() {
 										self.eval(y2, eval_tuple)
 									} else {
@@ -249,52 +252,52 @@ impl Evaluator {
 									panic!("if0 with {}, {} and {} is invalid", y3, y2, y1)
 								}
 							}
-							_ => E::Ap(Rc::new(x1), y1.clone()),
+							_ => Rc::new(E::Ap(x1.clone(), y1.clone())),
 						},
-						_ => E::Ap(x1.clone().into(), y1.clone().into()),
+						_ => Rc::new(E::Ap(x1.clone(), y1.clone())),
 					},
 					E::Pair(a, b) => self.eval(
 						&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
 						eval_tuple,
 					),
 					E::Other(name) if name == "inc" => {
-						if let E::Num(a) = self.eval(y1, eval_tuple) {
-							E::Num(a + 1)
+						if let E::Num(a) = self.eval(y1, eval_tuple).as_ref() {
+							Rc::new(E::Num(a + 1))
 						} else {
 							panic!("inc with {} is invalid", y1);
 						}
 					}
 					E::Other(name) if name == "dec" => {
-						if let E::Num(a) = self.eval(y1, eval_tuple) {
-							E::Num(a - 1)
+						if let E::Num(a) = self.eval(y1, eval_tuple).as_ref() {
+							Rc::new(E::Num(a - 1))
 						} else {
 							panic!("dec with {} is invalid", y1);
 						}
 					}
 					E::Other(name) if name == "neg" => {
-						if let E::Num(a) = self.eval(y1, eval_tuple) {
-							E::Num(-a)
+						if let E::Num(a) = self.eval(y1, eval_tuple).as_ref() {
+							Rc::new(E::Num(-a))
 						} else {
 							panic!("neg with {} is invalid", y1);
 						}
 					}
 					E::Other(name) if name == "car" => {
-						if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
+						if let E::Pair(a, _) = self.eval(y1, eval_tuple).as_ref() {
 							self.eval(&a, eval_tuple)
 						} else {
 							panic!("car with {} is invalid", y1);
 						}
 					}
 					E::Other(name) if name == "cdr" => {
-						if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
+						if let E::Pair(_, a) = self.eval(y1, eval_tuple).as_ref() {
 							self.eval(&a, eval_tuple)
 						} else {
 							panic!("cdr with {} is invalid", y1);
 						}
 					}
-					E::Other(name) if name == "isnil" => {
+					E::Other(name) if name == "isnil" => Rc::new({
 						let y1 = self.eval(y1, eval_tuple);
-						match y1 {
+						match y1.as_ref() {
 							E::Nil => E::T,
 							E::Pair(_, _) => E::F,
 							E::T | E::F | E::Cons | E::Other(_) => {
@@ -303,10 +306,13 @@ impl Evaluator {
 							}
 							_ => panic!("isnil with {} is invalid", y1),
 						}
-					},
+					}),
 					E::Other(name) if name == "i" => self.eval(y1.as_ref(), eval_tuple),
-					E::Nil => E::T,
-					_ => E::Ap(Rc::new(x1), y1.clone().into()),
+					E::Nil => {
+						eprintln!("warning: nil {}", &y1);
+						Rc::new(E::T)
+					}
+					_ => Rc::new(E::Ap(x1.clone(), y1.clone())),
 				}
 			}
 			E::Function(id) => {
@@ -329,11 +335,11 @@ impl Evaluator {
 					}
 				}
 			}
-			E::Pair(a, b) if eval_tuple => E::Pair(
-				self.eval(a, eval_tuple).into(),
-				self.eval(b, eval_tuple).into(),
-			),
-			e => e.clone(),
+			E::Pair(a, b) if eval_tuple => Rc::new(E::Pair(
+				self.eval(a, eval_tuple),
+				self.eval(b, eval_tuple),
+			)),
+			e => Rc::new(e.clone()),
 		}
 	}
 }

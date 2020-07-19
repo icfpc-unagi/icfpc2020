@@ -118,8 +118,8 @@ fn run() {
 		);
 		ev.clear_cache();
 		let f = ev.eval(&exp, false);
-		let f = ev.eval(&f, true);
-		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
+		let f = ev.eval(f.as_ref(), true);
+		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f.as_ref() {
 			if let E::Pair(a, b) = a.as_ref() {
 				if let E::Pair(data, _) = b.as_ref() {
 					(flag.as_ref() != &E::Num(0.into()), a.as_ref().clone(), data.as_ref().clone())
@@ -166,8 +166,8 @@ fn run() {
 				);
 				ev.clear_cache();
 				let f = ev.eval(&exp, false);
-				let f = ev.eval(&f, true);
-				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {
+				let f = ev.eval(f.as_ref(), true);
+				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f.as_ref() {
 					if let E::Pair(a, b) = a.as_ref() {
 						if let E::Pair(data, _) = b.as_ref() {
 							(flag.as_ref() != &E::Num(0.into()), a.as_ref().clone(), data.as_ref().clone())
