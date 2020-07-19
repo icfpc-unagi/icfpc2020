@@ -137,11 +137,10 @@ impl Evaluator {
 		}
 		eprintln!("m = {}", ev.m);
 		*/
-		// return new evaluator
-		Evaluator {
-			functions: normalized_functions,
-			count: vec![0; n], cache: vec![None; n], cache2: vec![None; n],
-		}
+		ev.cache = ev.cache2.clone();
+		ev.clear_cache();
+		// ev.count = vec![0; n];
+		ev
 	}
 	
 	pub fn clear_cache(&mut self) {
