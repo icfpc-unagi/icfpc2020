@@ -39,10 +39,11 @@ impl E {
 
 	pub fn construct_list(&self) -> E {
 		if let Some(vec) = get_list(self) {
-			assert!(vec.len() > 100);  // do not use this function if speed doesn't matter
+			assert!(vec.len() > 10);  // do not use this function if speed doesn't matter
 			let vec = Rc::new(vec);
 			E::List(vec, 0)
 		} else {
+			eprintln!("{}", &self);
 			panic!()
 		}
 	}
