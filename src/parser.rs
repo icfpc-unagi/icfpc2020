@@ -8,8 +8,33 @@ pub enum E {
 	Ap(Rc<E>, Rc<E>),
 	Num(BigInt),
 	Pair(Rc<E>, Rc<E>),
-	Etc(String),
+	Etc(Etc),
 	Cloned(Rc<E>, usize),
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Etc {
+	Other(String),
+	Nil,
+	T,
+	F,
+	Cons,
+}
+
+pub fn regularize_etc(e: &E) -> E {
+	match e {
+		E::Ap(a, b) => E::Ap(Rc::new(regularize_etc(a)), Rc::new(regularize_etc(b))),
+		E::Num(num) => E::Num(num.clone()),
+		E::Pair(a, b) => E::Pair(Rc::new(regularize_etc(a)), Rc::new(regularize_etc(b))),
+		E::Etc(etc) => E::Etc(match etc {
+			Etc::Other(name) if name == "nil" => Etc::Nil,
+			Etc::Other(name) if name == "t" => Etc::T,
+			Etc::Other(name) if name == "f" => Etc::F,
+			Etc::Other(name) if name == "cons" => Etc::Cons,
+			_ => etc.clone(),
+		}),
+		E::Cloned(e, s) => E::Cloned(Rc::new(regularize_etc(e)), *s),
+	}
 }
 
 pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
@@ -32,7 +57,13 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 	} else if let Ok(a) = ss[i].parse::<BigInt>() {
 		(E::Num(a), i + 1)
 	} else {
-		(E::Etc(ss[i].to_owned()), i + 1)
+		(E::Etc(match ss[i] {
+			"nil" => Etc::Nil,
+			"t" => Etc::T,
+			"f" => Etc::F,
+			"cons" => Etc::Cons,
+			_ => Etc::Other(ss[i].to_owned()),
+		}), i + 1)
 	}
 }
 
@@ -100,7 +131,7 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 			let x1 = self.eval(&x1, eval_tuple);
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
-					E::Etc(name) if name == "cons" => {
+					E::Etc(Etc::Cons) => {
 						if eval_tuple {
 							E::Pair(
 								self.eval(y2, eval_tuple).into(),
@@ -110,23 +141,23 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 							E::Pair(y2.clone(), y1.clone().into())
 						}
 					}
-					E::Etc(name) if name == "eq" => {
+					E::Etc(Etc::Other(name)) if name == "eq" => {
 						let y1 = self.eval(&y1, eval_tuple);
 						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => {
 								if y1 == y2 {
-									E::Etc("t".to_owned())
+									E::Etc(Etc::T)
 								} else {
-									E::Etc("f".to_owned())
+									E::Etc(Etc::F)
 								}
 							}
 							_ => panic!("eq with {} and {} is invalid", y2, y1),
 						}
 					}
-					E::Etc(name) if name == "t" => self.eval(&y2, eval_tuple),
-					E::Etc(name) if name == "f" => self.eval(&y1, eval_tuple),
-					E::Etc(name) if name == "add" => {
+					E::Etc(Etc::T) => self.eval(&y2, eval_tuple),
+					E::Etc(Etc::F) => self.eval(&y1, eval_tuple),
+					E::Etc(Etc::Other(name)) if name == "add" => {
 						let y1 = self.eval(&y1, eval_tuple);
 						let y2 = self.eval(&y2, eval_tuple);
 						match (y1, y2) {
@@ -134,7 +165,7 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 							(y1, y2) => panic!("add with {} and {} is invalid", y2, y1),
 						}
 					}
-					E::Etc(name) if name == "mul" => {
+					E::Etc(Etc::Other(name)) if name == "mul" => {
 						let y1 = self.eval(&y1, eval_tuple);
 						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
@@ -142,7 +173,7 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 							_ => panic!("mul with {} and {} is invalid", y2, y1),
 						}
 					}
-					E::Etc(name) if name == "div" => {
+					E::Etc(Etc::Other(name)) if name == "div" => {
 						let y1 = self.eval(&y1, eval_tuple);
 						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
@@ -150,30 +181,30 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 							_ => panic!("div with {} and {} is invalid", y2, y1),
 						}
 					}
-					E::Etc(name) if name == "lt" => {
+					E::Etc(Etc::Other(name)) if name == "lt" => {
 						let y1 = self.eval(&y1, eval_tuple);
 						let y2 = self.eval(&y2, eval_tuple);
 						match (&y1, &y2) {
 							(E::Num(y1), E::Num(y2)) => {
 								if y2 < y1 {
-									E::Etc("t".to_owned())
+									E::Etc(Etc::T)
 								} else {
-									E::Etc("f".to_owned())
+									E::Etc(Etc::F)
 								}
 							}
 							_ => panic!("lt with {} and {} is invalid", y2, y1),
 						}
 					}
 					E::Ap(x3, y3) => match x3.as_ref() {
-						E::Etc(name) if name == "b" => self.eval(
+						E::Etc(Etc::Other(name)) if name == "b" => self.eval(
 							&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
 							eval_tuple,
 						),
-						E::Etc(name) if name == "c" => self.eval(
+						E::Etc(Etc::Other(name)) if name == "c" => self.eval(
 							&E::Ap(Rc::new(E::Ap(y3.clone(), y1.clone())), y2.clone()),
 							eval_tuple,
 						),
-						E::Etc(name) if name == "s" => {
+						E::Etc(Etc::Other(name)) if name == "s" => {
 							let id = self.data.cache.len();
 							self.data.cache.push(None);
 							self.data.cache2.push(None);
@@ -185,7 +216,7 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 								eval_tuple,
 							)
 						}
-						E::Etc(name) if name == "if0" => {
+						E::Etc(Etc::Other(name)) if name == "if0" => {
 							if let E::Num(a) = self.eval(y3, eval_tuple) {
 								if a.is_zero() {
 									self.eval(y2, eval_tuple)
@@ -204,61 +235,55 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 					&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
 					eval_tuple,
 				),
-				E::Etc(name) if name == "inc" => {
+				E::Etc(Etc::Other(name)) if name == "inc" => {
 					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(a + 1)
 					} else {
 						panic!("inc with {} is invalid", y1);
 					}
 				}
-				E::Etc(name) if name == "dec" => {
+				E::Etc(Etc::Other(name)) if name == "dec" => {
 					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(a - 1)
 					} else {
 						panic!("dec with {} is invalid", y1);
 					}
 				}
-				E::Etc(name) if name == "neg" => {
+				E::Etc(Etc::Other(name)) if name == "neg" => {
 					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(-a)
 					} else {
 						panic!("neg with {} is invalid", y1);
 					}
 				}
-				E::Etc(name) if name == "car" => {
+				E::Etc(Etc::Other(name)) if name == "car" => {
 					if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
 						self.eval(&a, eval_tuple)
 					} else {
 						panic!("car with {} is invalid", y1);
 					}
 				}
-				E::Etc(name) if name == "cdr" => {
+				E::Etc(Etc::Other(name)) if name == "cdr" => {
 					if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
 						self.eval(&a, eval_tuple)
 					} else {
 						panic!("cdr with {} is invalid", y1);
 					}
 				}
-				E::Etc(name) if name == "isnil" => {
+				E::Etc(Etc::Other(name)) if name == "isnil" => {
 					let y1 = self.eval(y1, eval_tuple);
-					if let E::Etc(name) = y1 {
-						if name == "nil" {
-							E::Etc("t".to_owned())
-						} else {
-							E::Etc("f".to_owned())
-						}
-					} else if let E::Pair(_, _) = y1 {
-						E::Etc("f".to_owned())
-					} else {
-						panic!("isnil with {} is invalid", y1);
+					match y1 {
+						E::Etc(Etc::Nil) => E::Etc(Etc::T),
+						E::Etc(_) | E::Pair(_, _) => E::Etc(Etc::F),
+						_ => panic!("isnil with {} is invalid", y1),
 					}
-				}
-				E::Etc(name) if name == "i" => self.eval(y1.as_ref(), eval_tuple),
-				E::Etc(name) if name == "nil" => E::Etc("t".to_owned()),
+				},
+				E::Etc(Etc::Other(name)) if name == "i" => self.eval(y1.as_ref(), eval_tuple),
+				E::Etc(Etc::Nil) => E::Etc(Etc::T),
 				_ => E::Ap(Rc::new(x1), y1.clone().into()),
 			}
 		}
-		E::Etc(name) if name.starts_with(":") => {
+		E::Etc(Etc::Other(name)) if name.starts_with(":") => {
 			*self.data.count.entry(name.clone()).or_insert(0) += 1;
 			if let Some(func_ref) = self.map.get(name) {
 				let func = func_ref.clone();
@@ -283,16 +308,16 @@ pub fn simplify(e: &E) -> E {
 			let x1 = simplify(x1);
 			let y1 = simplify(y1);
 			match &x1 {
-				E::Etc(name) if name == "i" => y1,
+				E::Etc(Etc::Other(name)) if name == "i" => y1,
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Ap(x3, y3) => match x3.as_ref() {
-						E::Etc(name) if name == "b" => {
+						E::Etc(Etc::Other(name)) if name == "b" => {
 							E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), Rc::new(y1))))
 						}
-						E::Etc(name) if name == "c" => {
+						E::Etc(Etc::Other(name)) if name == "c" => {
 							E::Ap(Rc::new(E::Ap(y3.clone(), Rc::new(y1))), y2.clone())
 						}
-						E::Etc(name) if name == "s" => E::Ap(
+						E::Etc(Etc::Other(name)) if name == "s" => E::Ap(
 							Rc::new(E::Ap(y3.clone(), Rc::new(y1.clone()))),
 							Rc::new(E::Ap(y2.clone(), Rc::new(y1))),
 						),
@@ -314,7 +339,7 @@ pub fn get_list(e: &E) -> Option<Vec<Rc<E>>> {
 		list.push(a.clone());
 		e = b;
 	}
-	if e == &E::Etc("nil".to_owned()) {
+	if e == &E::Etc(Etc::Nil) {
 		Some(list)
 	} else {
 		None
@@ -348,9 +373,21 @@ impl std::fmt::Display for E {
 				} else {
 					write!(f, "<{}, {}>", a, b)?
 				}
-			}
-			E::Etc(name) if name == "nil" => write!(f, "[]")?,
-			E::Etc(name) => write!(f, "{}", name)?,
+			},
+			E::Etc(etc) => return etc.fmt(f),
+		}
+		Ok(())
+	}
+}
+
+impl std::fmt::Display for Etc {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Etc::Other(name) => write!(f, "{}", name)?,
+			Etc::Nil => write!(f, "[]")?,
+			Etc::T => write!(f, "t")?,
+			Etc::F => write!(f, "f")?,
+			Etc::Cons => write!(f, "cons")?,
 		}
 		Ok(())
 	}
@@ -366,7 +403,7 @@ pub fn to_text(e: &E) -> String {
 		E::Cloned(a, _) => to_text(a),
 		E::Num(a) => format!("{}", a),
 		E::Pair(a, b) => format!("ap ap cons {} {}", to_text(a), to_text(b)),
-		E::Etc(name) => name.to_owned(),
+		E::Etc(e) => format!("{}", e),
 	}
 }
 
@@ -404,7 +441,7 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 		while !s.is_empty() {
 			s = consume_space(s);
 			if s.starts_with("]") {
-				let mut ee = E::Etc("nil".to_owned());
+				let mut ee = E::Etc(Etc::Nil);
 				es.reverse();
 				for e in es {
 					ee = E::Pair(Rc::new(e), Rc::new(ee));
@@ -429,7 +466,7 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 			if let Ok(a) = s[..p].parse::<BigInt>() {
 				E::Num(a)
 			} else {
-				E::Etc(s[..p].to_owned())
+				E::Etc(Etc::Other(s[..p].to_owned()))
 			},
 			&s[p..],
 		);
@@ -453,7 +490,7 @@ impl<'a> Iterator for EIterator<'a> {
 	type Item = &'a E;
 	fn next(&mut self) -> Option<Self::Item> {
 		match &self.0 {
-			E::Etc(x) if x == "nil" => None,
+			E::Etc(Etc::Nil) => None,
 			E::Pair(head, tail) => {
 				self.0 = tail.as_ref();
 				Some(head.as_ref())

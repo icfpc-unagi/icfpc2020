@@ -27,6 +27,10 @@ submission:
 submission-test: submission
 	cd build/submission && bash build.sh && bash run.sh http://imoz.jp test
 
+.PHONY: performance
+performance:
+	bash test/performance_test.sh
+
 .PHONY: deploy-dashboard
 deploy-dashboard:
 	cd go/cmd/dashboard && unagi --bare make deploy
