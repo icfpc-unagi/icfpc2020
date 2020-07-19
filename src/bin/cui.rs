@@ -30,6 +30,9 @@ fn run() {
 	let args = Args::from_args();
 	println!("Args: {:?}", &args);
 
+	let recognizer = recognize::Recognizer::new();
+	let mut recognition_result = recognize::RecognitionResult::new_empty();
+
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
 	let mut functions = std::collections::BTreeMap::new();
@@ -54,6 +57,9 @@ fn run() {
 		} else {
 			let mut line = String::new();
 			let _ = stdin.read_line(&mut line).unwrap();
+
+			let line = recognition_result.filter_command(line.trim());
+
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
 				let (prev_state, prev_data) = stack.pop().unwrap();
@@ -134,7 +140,9 @@ fn run() {
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
 
 			if args.recognize {
-				app::recognize::recognize(&current_data);
+				app::visualize::multidraw_from_e(&data);
+				recognition_result = recognizer.recognize(&current_data);
+				dbg!(&recognition_result);
 			}
 		} else {
 			eprintln!("orz");

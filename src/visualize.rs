@@ -18,9 +18,9 @@ fn bigint_to_usize(x: &BigInt) -> usize {
     x.to_usize().unwrap()
 }
 
-pub fn create_bitmap(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> Vec<Vec<bool>> {
+pub fn create_bitmap_with_offset(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> (Vec<Vec<bool>>, (BigInt, BigInt)) {
     if list_of_coords.len() == 0 {
-        vec![vec![]]
+        (vec![vec![]], (0.into(), 0.into()))
     } else {
         let min_x = list_of_coords.iter().map(|c| c.0.clone()).min().unwrap();
         let max_x = list_of_coords.iter().map(|c| c.0.clone()).max().unwrap();
@@ -35,8 +35,12 @@ pub fn create_bitmap(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> Vec<Ve
             let y = bigint_to_usize(&(&coord.1.clone() - min_y.clone()));
             bitmap[y][x] = true;
         }
-        bitmap
+        (bitmap, (min_x, min_y))
     }
+}
+
+pub fn create_bitmap(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> Vec<Vec<bool>> {
+    create_bitmap_with_offset(list_of_coords).0
 }
 
 pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
