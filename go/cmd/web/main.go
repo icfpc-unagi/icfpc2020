@@ -98,6 +98,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		<form action="/" method="POST">
 		Coordinates: <input name="input" type="text" value="">
 		<input type=submit value="Send">
+		<input type=button value="Undo" onclick="$('input[name=input]')[0].value = 'undo'; $('form')[0].submit();">
 		</form>
 	`)
 	png, _ := os.Open("out/raw.png")

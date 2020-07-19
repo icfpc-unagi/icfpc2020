@@ -17,6 +17,8 @@ struct Args {
 	input_file: String,
 	#[structopt(long)]
 	recognize: bool,
+	#[structopt(long)]
+	performance_test: bool,
 }
 
 fn prepare_init_state(args: &Args) -> E {
@@ -33,7 +35,8 @@ fn prepare_init_state(args: &Args) -> E {
 fn run() {
 	let args = Args::from_args();
 	println!("Args: {:?}", &args);
-	
+	let recognizer = recognize::Recognizer::new();
+	let mut recognition_result = recognize::RecognitionResult::new_empty();
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
 	let mut evaluator = app::parser::Evaluator::default();
@@ -47,6 +50,17 @@ fn run() {
 		// functions.insert(name, exp);
 		evaluator.insert_function(name, exp);
 	}
+
+	// FOR PERFORMANCE TEST.
+	let mut expected_requests = vec![
+		"11011000011101000",
+		"11011000101101111111111111111100010100110100111101100000000110001010100010001110110011101101100110000",
+	];
+	expected_requests.reverse();
+	let mut expected_responses = vec![
+		"11011000011111110101101111111111111111100010100110100111101100000000110001010100010001110110011101101100001111011000011101111111111111111100111000101100111111101000101101000111101010001010010110101111011000000",
+	];
+	expected_responses.reverse();
 
 	let mut state = prepare_init_state(&args);
 
@@ -72,9 +86,11 @@ fn run() {
 			}
 			let bytes = stdin.read_line(&mut line).unwrap();
 			if bytes == 0 {
-			        eprintln!("EOF");
-			        return;
+				eprintln!("EOF");
+				return;
 			}
+			let line = recognition_result.filter_command(line.trim());
+
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
 				let (prev_state, prev_data) = stack.pop().unwrap();
@@ -82,6 +98,11 @@ fn run() {
 				current_data = prev_data;
 				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
 				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
+				if args.recognize {
+					recognition_result = recognizer.recognize(&current_data);
+					dbg!(&recognition_result);
+				}
+
 				continue;
 			} else if ss.len() != 2 {
 				eprintln!("illegal input");
@@ -95,7 +116,7 @@ fn run() {
 		};
 		let xy = E::Pair(Rc::new(E::Num(x.into())), Rc::new(E::Num(y.into())));
 		let exp = E::Ap(
-			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
+			Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
 			xy.into(),
 		);
 		let mut ev = evaluator.clone();
@@ -123,11 +144,26 @@ fn run() {
 			while flag {
 				let modulated = app::modulation::modulate(&data);
 				eprintln!("send: {}", &modulated);
-				let resp = send(&modulated);
+				let resp = if args.performance_test {
+					let expected = expected_requests.pop().unwrap();
+					if expected != modulated {
+						panic!("Unexpected input: expected={}, actual={}", expected, modulated);
+					}
+					match expected_responses.pop() {
+						Some(x) => x.to_owned(),
+						_ => {
+							println!("Successfully, the response stack has become empty.");
+							std::process::exit(0);
+						},
+					}
+				} else {
+					send(&modulated)
+				};
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
+				eprintln!("resp(lisp): {}", &resp);
 				let exp = E::Ap(
-					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
+					Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
 					resp.into(),
 				);
 				let mut ev = evaluator.clone();
@@ -155,9 +191,9 @@ fn run() {
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
 			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
-
 			if args.recognize {
-				app::recognize::recognize(&current_data);
+				recognition_result = recognizer.recognize(&current_data);
+				dbg!(&recognition_result);
 			}
 		} else {
 			eprintln!("orz");
