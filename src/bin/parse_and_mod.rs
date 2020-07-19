@@ -17,8 +17,18 @@ fn main() {
 		functions.insert(name, exp);
 	}
 	let mut data = app::parser::Data::default();
+	let yabai = [1096, 1104, 1433, 1434, 1435, 1436, 1437];
+	let yabai: ::std::collections::BTreeSet<String> = yabai.iter().map(
+		|&n| format!(":{}", n)
+	).collect();
 	for id in functions.keys() {
+		eprintln!("{}", id);
 		let f = parser::eval(&functions[id], &functions, false, &mut data);
+		let f = if yabai.contains(id) {
+			f
+		} else {
+			parser::eval(&f, &functions, true, &mut data)
+		};
 		println!("{}: {}", id, f);
 	}
 	let f = parser::eval(&functions["main"], &functions, true, &mut data);
