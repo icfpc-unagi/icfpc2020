@@ -14,8 +14,5 @@ for f in /sys/fs/cgroup/memory/*; do
 done
 cat /proc/cpuinfo
 
-./target/release/cui \
-	--init-state ./data/performance_test-init_state.txt \
-	${EXTRA_FLASG:-} \
-	<./data/performance_test-input.txt || \
+./target/release/app ${EXTRA_FLASG:-} "$@" || \
 	echo "ERROR: exit_code=$?"
