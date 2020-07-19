@@ -21,6 +21,8 @@ fn main() {
 	let server_url = args[1].clone();
 	let player1 = args[2].clone();
 	let player2 = if args.len() < 4 { player1.clone() } else { args[3].clone() };
+	let mut build = std::process::Command::new("cargo").args(&["build", "--release"]).stdin(Stdio::inherit()).stderr(Stdio::inherit()).stdout(Stdio::inherit()).spawn().unwrap();
+	build.wait().unwrap();
 	let (a, d) = get_room(server_url.clone());
 	let mut player1 = std::process::Command::new(format!("target/release/{}", player1)).args(&[server_url.clone(), a]).stdin(Stdio::piped()).stderr(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
 	let mut player2 = std::process::Command::new(format!("target/release/{}", player2)).args(&[server_url.clone(), d]).stdin(Stdio::piped()).stderr(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
