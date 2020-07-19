@@ -22,7 +22,7 @@ fn run() {
 		|&n| format!(":{}", n)
 	).collect();
 	for id in functions.keys() {
-		eprintln!("{}", id);
+		// eprintln!("{}", id);
 		let f = parser::eval(&functions[id], &functions, false, &mut data);
 		let f = if yabai.contains(id) {
 			f
