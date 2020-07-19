@@ -141,6 +141,7 @@ fn run() {
 			while flag {
 				let modulated = app::modulation::modulate(&data);
 				eprintln!("send: {}", &modulated);
+				eprintln!("send(lisp): {}", &data);
 				let resp = if args.performance_test {
 					let expected = expected_requests.pop().unwrap();
 					if expected != modulated {
