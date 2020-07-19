@@ -10,8 +10,8 @@ async fn send_async(s: String) -> String {
 		.unwrap();
 	let res = client
 		.post(&format!(
-			"{}{}",
-			"https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=",
+			"{}/aliens/send?apiKey={}",
+			env::var("ICFPC_API_HOST").unwrap_or("https://icfpc2020-api.testkontur.ru"),
 			env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
 		))
 		.body(s.clone())
