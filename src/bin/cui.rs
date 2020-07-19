@@ -49,7 +49,7 @@ fn run() {
 	let mut current_data = E::Num(0.into());
 	for iter in 0.. {
 		let (x, y) = if iter == 0 {
-			(9999, 9999)
+			(0, 0)
 		} else {
 			let mut line = String::new();
 			let bytes = stdin.read_line(&mut line).unwrap();
