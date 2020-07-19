@@ -14,8 +14,6 @@ for f in /sys/fs/cgroup/memory/*; do
 done
 cat /proc/cpuinfo
 
-mkdir -p out
-
 ./target/release/cui \
 	--init-state ./data/performance_test-init_state.txt \
 	<./data/performance_test-input.txt || \
