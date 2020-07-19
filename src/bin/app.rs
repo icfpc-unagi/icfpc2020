@@ -8,8 +8,12 @@ fn run() {
 		return;
 	}
 	let player_key = std::env::args().nth(2).unwrap();
-	client.join(&player_key);
-	let mut resp = client.start(446, 0, 0, 1);
+	let mut resp = client.join(&player_key);
+	if resp.info.role == 0 {
+		resp = client.start(446, 0, 0, 1);
+	} else {
+		resp = client.start(446, 0, 0, 1);
+	}
 	let id = resp.state.ships.iter().find_map(|s| if s.role == resp.info.role { Some(s.id) } else { None }).unwrap();
 	while resp.stage != 2 {
 		resp = client.command(&[Command::Accelerate(id, (0, -1))]);

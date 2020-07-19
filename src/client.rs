@@ -12,11 +12,11 @@ pub struct Response {
 
 #[derive(Debug, Clone)]
 pub struct Info {
-	pub x0: E,
+	pub x0: i32,
 	pub role: i32,
-	pub x2: E,
-	pub x3: E,
-	pub x4: E,
+	pub x2: Vec<E>,
+	pub x3: Vec<E>,
+	pub opponent_params: Params,
 }
 
 #[derive(Debug, Clone)]
@@ -32,10 +32,10 @@ pub struct Ship {
 	pub id: i32,
 	pub pos: (i32, i32),
 	pub v: (i32, i32),
-	pub x4: E,
-	pub x5: E,
-	pub x6: E,
-	pub x7: E,
+	pub status: Params,
+	pub heat: i32,
+	pub max_heat: i32,
+	pub x7: i32,
 	pub commands: Vec<Command>,
 }
 
@@ -45,6 +45,14 @@ pub enum Command {
 	Detonate(i32),
 	Shoot(i32, (i32, i32), i32),
 	Unknown,
+}
+
+#[derive(Debug, Clone)]
+pub struct Params {
+	energy: i32,
+	power: i32,
+	cool: i32,
+	split: i32,
 }
 
 impl std::fmt::Display for Command {
@@ -121,8 +129,8 @@ impl Client {
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
 	}
-	pub fn start(&self, x0: i32, x1: i32, x2: i32, x3: i32) -> Response {
-		let resp = self.send(&format!("[3, {}, [{}, {}, {}, {}]]", self.player_key, x0, x1, x2, x3));
+	pub fn start(&self, energy: i32, power: i32, cool: i32, split: i32) -> Response {
+		let resp = self.send(&format!("[3, {}, [{}, {}, {}, {}]]", self.player_key, energy, power, cool, split));
 		parse(resp)
 	}
 	pub fn command(&self, cs: &[Command]) -> Response {
@@ -131,7 +139,7 @@ impl Client {
 	}
 }
 
-fn get_num(a: &E) -> i32 {
+pub fn get_num(a: &E) -> i32 {
 	if let E::Num(a) = a {
 		*a as i32
 	} else {
@@ -139,7 +147,7 @@ fn get_num(a: &E) -> i32 {
 	}
 }
 
-fn get_pair(a: &E) -> (i32, i32) {
+pub fn get_pair(a: &E) -> (i32, i32) {
 	if let E::Pair(a, b) = a {
 		(get_num(a), get_num(b))
 	} else {
@@ -153,11 +161,26 @@ pub fn parse(e: E) -> Response {
 	assert_eq!(get_num(&a[0]), 1);
 	let stage = get_num(&a[1]);
 	let info = get_list(&a[2]).unwrap();
-	let x0 = info[0].as_ref().clone();
+	let x0 = get_num(&info[0]);
 	let role = get_num(&info[1]);
-	let x2 = info[2].as_ref().clone();
-	let x3 = info[3].as_ref().clone();
-	let x4 = info[4].as_ref().clone();
+	let x2 = get_list(&info[2]).unwrap().into_iter().map(|e| e.as_ref().clone()).collect();
+	let x3 = get_list(&info[3]).unwrap().into_iter().map(|e| e.as_ref().clone()).collect();
+	let params = get_list(&info[4]).unwrap().into_iter().map(|e| get_num(&e)).collect::<Vec<_>>();
+	let opponent_params = if params.len() != 4 {
+		Params {
+			energy: -1,
+			power: -1,
+			cool: -1,
+			split: -1,
+		}
+	} else {
+		Params {
+			energy: params[0],
+			power: params[1],
+			cool: params[2],
+			split: params[3],
+		}
+	};
 	let state = get_list(&a[3]).unwrap();
 	let (tick, x1, ships) = if state.len() > 0 {
 		let tick = get_num(&state[0]);
@@ -170,10 +193,16 @@ pub fn parse(e: E) -> Response {
 			let id = get_num(&s[1]);  // shipId
 			let pos = get_pair(&s[2]);
 			let v = get_pair(&s[3]);
-			let x4 = s[4].as_ref().clone();
-			let x5 = s[5].as_ref().clone();
-			let x6 = s[6].as_ref().clone();
-			let x7 = s[7].as_ref().clone();
+			let status = get_list(&s[4]).unwrap().into_iter().map(|e| get_num(&e)).collect::<Vec<_>>();
+			let status = Params {
+				energy: status[0],
+				power: status[1],
+				cool: status[2],
+				split: status[3],
+			};
+			let heat = get_num(&s[5]);
+			let max_heat = get_num(&s[6]);
+			let x7 = get_num(&s[7]);
 			// [1, 1, [256, 1, [448, 2, 128], [16, 128], []], [1, [16, 128], [[[1, 0, <34, -46>, <0, 2>, [445, 0, 0, 1], 8, 128, 2], [[0, <0, -1>]]], [[0, 1, <-34, 48>, <0, 0>, [445, 0, 0, 1], 8, 128, 2], [[0, <0, -1>]]]]]]
 			// [src/bin/app.rs:177] &commands = [
 			// 	Pair(
@@ -200,9 +229,9 @@ pub fn parse(e: E) -> Response {
 				id,
 				pos,
 				v,
-				x4,
-				x5,
-				x6,
+				status,
+				heat,
+				max_heat,
 				x7,
 				commands
 			}
@@ -214,7 +243,7 @@ pub fn parse(e: E) -> Response {
 	Response {
 		stage,
 		info: Info {
-			x0, role, x2, x3, x4
+			x0, role, x2, x3, opponent_params
 		},
 		state: State {
 			tick, x1, ships
