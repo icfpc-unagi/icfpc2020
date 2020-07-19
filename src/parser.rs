@@ -16,6 +16,7 @@ pub enum E {
 	Function(usize),
 	Other(String),
 	Cloned(Rc<E>, usize),
+	List(Rc<Vec<Rc<E>>>, usize),
 }
 
 impl E {
@@ -26,6 +27,36 @@ impl E {
 			E::Pair(a, b) => a.as_ref().count_thunk() + b.as_ref().count_thunk(),
 			_ => 0,
 		}
+	}
+
+	pub fn matcher(self) -> E {
+		match self {
+			E::List(list, k) => {
+				// eprintln!("yes");
+				assert!(k < list.len());
+				let head = Rc::clone(&list[0]);
+				let tail = Rc::new(
+					if k + 1 == list.len() {
+						E::Nil
+					} else {
+						E::List(Rc::clone(&list), k+1)
+					}
+				);
+				E::Pair(head, tail)
+			}
+			e => e,
+		}
+	}
+
+	fn try_into_list(&self) -> Option<E> {
+		if let Some(vec) = get_list(self) {
+			if false && vec.len() > 10 {  // debug!
+				eprintln!("{}", vec.len());
+				let vec = Rc::new(vec);
+				return Some(E::List(vec, 0));
+			}
+		}
+		None
 	}
 }
 
@@ -127,6 +158,13 @@ impl Evaluator {
 		for f in normalized_functions.iter() {
 			assert_eq!(f.count_thunk(), 0);
 		}
+		eprintln!("to list: start");
+		for f in normalized_functions.iter_mut() {
+			if let Some(e) = f.try_into_list() {
+				*f = e;
+			}
+		}
+		eprintln!("to list: end");
 		/*
 		ev.m = ev.cache.len();
 		ev.keep1.resize(ev.m, false);
@@ -137,6 +175,7 @@ impl Evaluator {
 		}
 		eprintln!("m = {}", ev.m);
 		*/
+		ev.cache2 = normalized_functions.into_iter().map(Some).collect();
 		ev.cache = ev.cache2.clone();
 		ev.clear_cache();
 		// ev.count = vec![0; n];
@@ -183,7 +222,7 @@ impl Evaluator {
 				}
 			}
 			E::Ap(x1, y1) => {
-				let x1 = self.eval(&x1, eval_tuple);
+				let x1 = self.eval(&x1, eval_tuple).matcher();
 				match &x1 {
 					E::Ap(x2, y2) => match x2.as_ref() {
 						E::Cons => {
@@ -312,21 +351,21 @@ impl Evaluator {
 						}
 					}
 					E::Other(name) if name == "car" => {
-						if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
+						if let E::Pair(a, _) = self.eval(y1, eval_tuple).matcher() {
 							self.eval(&a, eval_tuple)
 						} else {
 							panic!("car with {} is invalid", y1);
 						}
 					}
 					E::Other(name) if name == "cdr" => {
-						if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
+						if let E::Pair(_, a) = self.eval(y1, eval_tuple).matcher() {
 							self.eval(&a, eval_tuple)
 						} else {
 							panic!("cdr with {} is invalid", y1);
 						}
 					}
 					E::Other(name) if name == "isnil" => {
-						let y1 = self.eval(y1, eval_tuple);
+						let y1 = self.eval(y1, eval_tuple).matcher();
 						match y1 {
 							E::Nil => E::T,
 							E::Pair(_, _) => E::F,
@@ -443,6 +482,16 @@ impl std::fmt::Display for E {
 					write!(f, "<{}, {}>", a, b)?
 				}
 			},
+			E::List(list, k) => {
+				write!(f, "list![")?;
+				for i in *k..list.len() {
+					if i > 0 {
+						write!(f, ", ")?;
+					}
+					write!(f, "{}", list[i])?;
+				}
+				write!(f, "]")?;
+			}
 			E::Function(id) => write!(f, ":{}", id)?,
 			E::Other(name) => write!(f, "{}", name)?,
 			E::Nil => write!(f, "[]")?,
