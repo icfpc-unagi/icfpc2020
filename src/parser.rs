@@ -143,6 +143,10 @@ impl Evaluator {
 				functions[id] = exp;
 			}
 		}
+
+		// optimized functions
+		functions[1141] = E::Other("list_index".to_owned());
+
 		let n = functions.len();
 		let mut ev = Evaluator {
 			functions,
@@ -162,13 +166,11 @@ impl Evaluator {
 		for f in normalized_functions.iter() {
 			assert_eq!(f.count_thunk(), 0);
 		}
-		eprintln!("to list: start");
 		for f in normalized_functions.iter_mut() {
 			if let Some(e) = f.try_into_list() {
 				*f = e;
 			}
 		}
-		eprintln!("to list: end");
 		/*
 		ev.m = ev.cache.len();
 		ev.keep1.resize(ev.m, false);
@@ -293,6 +295,15 @@ impl Evaluator {
 								_ => panic!("lt with {} and {} is invalid", y2, y1),
 							}
 						}
+						E::Other(name) if name == "list_index" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							if let E::Num(y1) = y1 {
+								self.list_index(eval_tuple, y2, y1)
+							} else {
+								panic!("list_index: invalid index {}", y1)
+							}
+						}
 						E::Ap(x3, y3) => match x3.as_ref() {
 							E::Other(name) if name == "b" => self.eval(
 								&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
@@ -410,6 +421,29 @@ impl Evaluator {
 				self.eval(b, eval_tuple).into(),
 			),
 			e => e.clone(),
+		}
+	}
+
+	// optimized functions
+
+	fn list_index(&mut self, eval_tuple: bool, list: E, ix: Int) -> E {
+		// eprintln!("list_index: debug: {}, {}, {}", eval_tuple, ix, list);
+		assert!(ix >= 0);
+		match list {
+			E::List(list, offset) => {
+				let ix: usize = offset + ix as usize;
+				let e: &E = list.as_ref()[ix].as_ref();
+				self.eval(e, eval_tuple)
+			}
+			E::Pair(a, b) => {
+				if ix == 0 {
+					self.eval(a.as_ref(), eval_tuple)
+				} else {
+					let b = self.eval(b.as_ref(), eval_tuple);
+					self.list_index(eval_tuple, b, ix - 1)
+				}
+			}
+			_ => panic!("list_index: invalid type of array {}", &list),
 		}
 	}
 }
