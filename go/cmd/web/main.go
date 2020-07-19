@@ -46,7 +46,7 @@ func getGUIAddress() string {
 }
 
 func getImagePath() string {
-	return "out/" + fmt.Sprintf("%x", sha1.Sum([]byte(getGUIAddress())))[:8] + ".png";
+	return "out/" + fmt.Sprintf("%x", sha1.Sum([]byte(getGUIAddress())))[:8] + ".png"
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +112,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		Coordinates: <input name="input" type="text" value="">
 		<input type=submit value="Send">
 		<input type=button value="Undo" onclick="$('input[name=input]')[0].value = 'undo'; $('form')[0].submit();">
+		<input type=button value="Galaxy" onclick="$('input[name=input]')[0].value = 'galaxy'; $('form')[0].submit();">
 		</form>
 	`)
 	png, _ := os.Open(getImagePath())
@@ -128,7 +129,7 @@ func main() {
 	flag.Parse()
 	var err error
 	game.cmd = exec.CommandContext(context.Background(), flag.Args()[0], flag.Args()[1:]...)
-	game.cmd.Env = append(os.Environ(), "IMAGE_OUTPUT=" + getImagePath())
+	game.cmd.Env = append(os.Environ(), "IMAGE_OUTPUT="+getImagePath())
 	game.stdin, err = game.cmd.StdinPipe()
 	if err != nil {
 		glog.Fatalf("Failed to get stdin pipe: %w", err)
@@ -140,7 +141,7 @@ func main() {
 		glog.Fatalf("Failed to get stdout pipe: %w", err)
 	}
 	go func() {
-		game.stdout = bufio.NewReaderSize(stdout, 16 * 1024 * 1024)
+		game.stdout = bufio.NewReaderSize(stdout, 16*1024*1024)
 		for {
 			buf, err := game.stdout.ReadSlice('\n')
 			if err != nil {
@@ -156,7 +157,7 @@ func main() {
 		glog.Fatalf("Failed to get stderr pipe: %w", err)
 	}
 	go func() {
-		game.stderr = bufio.NewReaderSize(stderr, 16 * 1024 * 1024)
+		game.stderr = bufio.NewReaderSize(stderr, 16*1024*1024)
 		for {
 
 			buf, err := game.stderr.ReadSlice('\n')
