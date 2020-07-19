@@ -11,13 +11,15 @@ use app::*;
 struct Args {
 	#[structopt(long, default_value = "")]
 	init_state: String,
+	#[structopt(long)]
+	recognize: bool,
 }
 
-fn prepare_init_state(args: Args) -> E {
+fn prepare_init_state(args: &Args) -> E {
 	if args.init_state.is_empty() {
 		parser::parse(&["nil"], 0).0
 	} else {
-		let mut init_state = std::fs::File::open(args.init_state).unwrap();
+		let mut init_state = std::fs::File::open(&args.init_state).unwrap();
 		let mut state = String::new();
 		init_state.read_to_string(&mut state).expect("ini_state read error");
 		parser::parse_lisp(&state).0
@@ -40,7 +42,7 @@ fn run() {
 		functions.insert(name, exp);
 	}
 
-	let mut state = prepare_init_state(args);
+	let mut state = prepare_init_state(&args);
 
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
@@ -130,6 +132,10 @@ fn run() {
 				eprintln!("state: {}", state);
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+
+			if args.recognize {
+				app::recognize::recognize(&current_data);
+			}
 		} else {
 			eprintln!("orz");
 		}

@@ -6,11 +6,11 @@ fn collect_coords(e: &E) -> (num::BigInt, num::BigInt) {
     e.into()
 }
 
-fn collect_list_of_coords(e: &E) -> Vec<(num::BigInt, num::BigInt)> {
+pub fn collect_list_of_coords(e: &E) -> Vec<(num::BigInt, num::BigInt)> {
     e.into_iter().map(|e| collect_coords(e)).collect()
 }
 
-fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(num::BigInt, num::BigInt)>> {
+pub fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(num::BigInt, num::BigInt)>> {
     e.into_iter().map(|e| collect_list_of_coords(e)).collect()
 }
 
@@ -18,11 +18,9 @@ fn bigint_to_usize(x: &BigInt) -> usize {
     x.to_usize().unwrap()
 }
 
-pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
-    println!("---------- {} ----------", name);
-
+pub fn create_bitmap(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> Vec<Vec<bool>> {
     if list_of_coords.len() == 0 {
-        println!("(Empty)")
+        vec![vec![]]
     } else {
         let min_x = list_of_coords.iter().map(|c| c.0.clone()).min().unwrap();
         let max_x = list_of_coords.iter().map(|c| c.0.clone()).max().unwrap();
@@ -37,7 +35,17 @@ pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
             let y = bigint_to_usize(&(&coord.1.clone() - min_y.clone()));
             bitmap[y][x] = true;
         }
+        bitmap
+    }
+}
 
+pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
+    println!("---------- {} ----------", name);
+
+    let bitmap = create_bitmap(list_of_coords);
+    if bitmap.is_empty() {
+        println!("(Empty)")
+    } else {
         for row in &bitmap {
             for b in row {
                 print!("{}", if *b { "#" } else { " " })
