@@ -17,7 +17,7 @@ fn prepare_init_state(args: Args) -> E {
 	if args.init_state.is_empty() {
 		parser::parse(&["nil"], 0).0
 	} else {
-		let mut init_state = std::fs::File::open("data/init_state.txt").unwrap();
+		let mut init_state = std::fs::File::open(args.init_state).unwrap();
 		let mut state = String::new();
 		init_state.read_to_string(&mut state).expect("ini_state read error");
 		parser::parse_lisp(&state).0
