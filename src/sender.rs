@@ -1,14 +1,18 @@
+use reqwest;
+use reqwest::redirect;
 use std::env;
 use tokio::runtime::Runtime;
-use reqwest;
 
 async fn send_async(s: String) -> String {
-	let client = reqwest::Client::new();
-	let res = client.post(&format!(
-		"{}{}",
-		"https://icfpc2020-api.testkontur.ru/aliens/send?apiKey=",
-		env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
-	))
+	let client = reqwest::Client::builder()
+		.redirect(redirect::Policy::limited(1000))
+		.build();
+	let res = client
+		.post(&format!(
+			"{}{}",
+			"http://localhost:9000/aliens/send?apiKey=",
+			env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
+		))
 		.body(s.clone())
 		.send()
 		.await;
