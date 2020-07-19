@@ -138,7 +138,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 
 
 
-	if maxlen * 1 / 10 >= minlen && maxlen * 9 / 10 <= minlen {shoot_flag = false;}
+	if maxlen * 1 / 10 <= minlen && maxlen * 9 / 10 >= minlen {shoot_flag = false;}
 
 	eprintln!("debug {} {} {} {} {} {} {}", myship.status.energy, myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, addx, addy);
 
