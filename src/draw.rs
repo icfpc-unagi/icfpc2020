@@ -39,7 +39,15 @@ pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 // overwrite with gradient colormap
 pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
-	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(w, h, Rgb([255, 255, 255])));
+	let mut img = RgbImage::from_pixel(w, h, Rgb([255, 255, 255]));
+	for x in 0..w {
+		for y in 0..h {
+			if (x + y) % 2 == 0 {
+				img.put_pixel(x, y, Rgb([239, 239, 239]))
+			} 
+		}
+	}
+	let mut img = DynamicImage::ImageRgb8(img);
 	draw_axes(&mut img, &offset, 10);
 	for i in 0..v.len() {
 		let i = v.len() - 1 - i; // overwrite in reverse order
@@ -133,11 +141,11 @@ fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
 	}
 }
 
-fn draw_on_scale<T: GenericImage<Pixel = Rgba<u8>>>(
+fn draw_on_scale<P: Pixel, T: GenericImage<Pixel = P>>(
 	img: &mut T,
 	dots: &Vec<(BigInt, BigInt)>,
 	offset: &(BigInt, BigInt),
-	px: Rgba<u8>,
+	px: P,
 	scale: u32,
 ) {
 	for dot in dots {
