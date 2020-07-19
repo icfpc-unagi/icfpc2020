@@ -104,7 +104,7 @@ pub struct Client {
 impl Client {
 	pub fn new(server_url: String) -> Self {
 		Self {
-			server_url,
+			server_url: server_url + "/aliens/send",
 			player_key: String::new(),
 			client: reqwest::Client::new()
 		}
