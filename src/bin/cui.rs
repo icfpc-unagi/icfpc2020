@@ -97,7 +97,7 @@ fn run() {
 				if args.recognize {
 					recognition_result = recognizer.recognize(&current_data);
 					dbg!(&recognition_result);
-				}]
+				}
 
 				continue;
 			} else if ss.len() != 2 {
