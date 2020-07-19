@@ -30,14 +30,16 @@ fn run() {
 
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
-	let mut functions = std::collections::BTreeMap::new();
+	let mut evaluator = app::parser::Evaluator::default();
+	// let mut functions = std::collections::BTreeMap::new();
 	for line in f.lines() {
 		let line = line.unwrap();
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let name = ss[0].to_owned();
 		let (exp, n) = parse(&ss[2..], 0);
 		assert_eq!(n, ss.len() - 2);
-		functions.insert(name, exp);
+		// functions.insert(name, exp);
+		evaluator.insert_function(name, exp);
 	}
 
 	let mut state = prepare_init_state(args);
@@ -80,12 +82,12 @@ fn run() {
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		let mut data = app::parser::Data::default();
-		let f = eval(&exp, &functions, false, &mut data);
-		let sum_count: usize = data.count.values().sum();
+		let mut ev = evaluator.clone();
+		let f = ev.eval(&exp, false);
+		let sum_count: usize = ev.data.count.values().sum();
 		eprintln!("{}", sum_count);
-		let f = eval(&f, &functions, true, &mut data);
-		let sum_count: usize = data.count.values().sum();
+		let f = ev.eval(&f, true);
+		let sum_count: usize = ev.data.count.values().sum();
 		eprintln!("{}", sum_count);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
@@ -115,9 +117,9 @@ fn run() {
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				let mut parser_data = app::parser::Data::default();
-				let f = eval(&exp, &functions, false, &mut parser_data);
-				let f = eval(&f, &functions, true, &mut parser_data);
+				let mut ev = evaluator.clone();
+				let f = ev.eval(&exp, false);
+				let f = ev.eval(&f, true);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {
 					if let E::Pair(a, b) = a.as_ref() {
 						if let E::Pair(data, _) = b.as_ref() {

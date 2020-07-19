@@ -64,13 +64,17 @@ pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data)
 	out
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Evaluator {
 	pub map: BTreeMap<String, E>,
 	pub data: Data,
 }
 
 impl Evaluator {
+	pub fn insert_function(&mut self, name: String, exp: E) {
+		self.map.insert(name, exp);
+	}
+
 pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 	match e {
 		E::Cloned(a, id) => {
