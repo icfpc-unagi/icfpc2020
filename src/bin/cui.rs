@@ -96,7 +96,7 @@ fn run() {
 				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
 				if args.recognize {
 					recognition_result = recognizer.recognize(&current_data);
-					dbg!(&recognition_result);
+					recognition_result.pretty_print();
 				}
 
 				continue;
@@ -189,7 +189,7 @@ fn run() {
 			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
 			if args.recognize {
 				recognition_result = recognizer.recognize(&current_data);
-				dbg!(&recognition_result);
+				recognition_result.pretty_print();
 			}
 		} else {
 			eprintln!("orz");
