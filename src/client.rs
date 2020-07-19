@@ -49,10 +49,10 @@ pub enum Command {
 
 #[derive(Debug, Clone)]
 pub struct Params {
-	energy: i32,
-	power: i32,
-	cool: i32,
-	split: i32,
+	pub energy: i32,
+	pub power: i32,
+	pub cool: i32,
+	pub split: i32,
 }
 
 impl std::fmt::Display for Command {
