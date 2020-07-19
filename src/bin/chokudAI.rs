@@ -1,4 +1,5 @@
 use app::client::*;
+use rand::prelude::*;
 
 fn run(){
 
@@ -54,32 +55,35 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 
 	let mut next_enemy = vec![enemyship.pos.0 + enemyship.v.0, enemyship.pos.1 + enemyship.v.1];
 
+	
+	if resp.state.tick < 30 || rand::thread_rng().gen_range(0, 2) == 0 {
 
-	if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
-		if enemyship.pos.1 >= 0 {
-			next_enemy[1] -= 1;
+		if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
+			if enemyship.pos.1 >= 0 {
+				next_enemy[1] -= 1;
+			}
+			else{
+				next_enemy[1] += 1;
+			}
 		}
-		else{
-			next_enemy[1] += 1;
-		}
-	}
-	if enemyship.pos.1.abs() <= enemyship.pos.0.abs(){
-		if enemyship.pos.0 >= 0 {
-			next_enemy[0] -= 1;
-		}
-		else{
-			next_enemy[0] += 1;
+		if enemyship.pos.1.abs() <= enemyship.pos.0.abs(){
+			if enemyship.pos.0 >= 0 {
+				next_enemy[0] -= 1;
+			}
+			else{
+				next_enemy[0] += 1;
+			}
 		}
 	}
 
 	let mut addy = 0;
 	let mut addx = 0;
 
-	if myship.pos.0.abs() < 40 && myship.pos.1.abs() < 40{
-		if myship.pos.0 < 0 { addx = -2; }
-		else {addx = 2;}
-		if myship.pos.1 < 0 { addy = -2; }
-		else {addy = 2;}
+	if myship.pos.0.abs() < 30 && myship.pos.1.abs() < 30{
+		if myship.pos.0 < 0 { addx = -1; }
+		else {addx = 1;}
+		if myship.pos.1 < 0 { addy = -1; }
+		else {addy = 1;}
 	}
 	else
 	{
@@ -111,12 +115,12 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 		}
 	}
 
-	if myship.pos.0.abs() > 80{
+	if myship.pos.0.abs() > 100{
 		if myship.pos.0 < 0 { addx = 1; }
 		else {addx = -1;}
 	}
 	
-	if myship.pos.1.abs() > 80{
+	if myship.pos.1.abs() > 100{
 		if myship.pos.1 < 0 { addy = 1; }
 		else {addy = -1;}
 	}
@@ -129,7 +133,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 	if addy != 0 || addx != 0 {accelerate_flag = true; }
 	if myship.heat <= myship.max_heat - 60 {shoot_flag = true;}
 
-	eprintln!("debug {} {} {} {} {} {}", myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, addx, addy);
+	eprintln!("debug {} {} {} {} {} {} {}", myship.status.energy, myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, addx, addy);
 
 
 	let mut ret = vec![];
