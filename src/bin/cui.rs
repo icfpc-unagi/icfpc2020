@@ -5,34 +5,46 @@ use app::sender::*;
 use app;
 use std::rc::Rc;
 use std;
+use structopt::StructOpt;
 
 use app::*;
 
+#[derive(structopt::StructOpt, Debug)]
+struct Args {
+	#[structopt(long, default_value = "")]
+	init_state: String,
+	#[structopt(long)]
+	recognize: bool,
+}
+
+fn prepare_init_state(args: &Args) -> E {
+	if args.init_state.is_empty() {
+		parser::parse(&["nil"], 0).0
+	} else {
+		let mut init_state = std::fs::File::open(&args.init_state).unwrap();
+		let mut state = String::new();
+		init_state.read_to_string(&mut state).expect("ini_state read error");
+		parser::parse_lisp(&state).0
+	}
+}
+
 fn run() {
+	let args = Args::from_args();
+	println!("Args: {:?}", &args);
+
 	let f = std::fs::File::open("data/galaxy.txt").unwrap();
 	let f = std::io::BufReader::new(f);
-	let mut functions_vec = Vec::new();
+	let mut functions = std::collections::BTreeMap::new();
 	for line in f.lines() {
 		let line = line.unwrap();
 		let ss = line.split_whitespace().collect::<Vec<_>>();
 		let name = ss[0].to_owned();
 		let (exp, n) = parse(&ss[2..], 0);
 		assert_eq!(n, ss.len() - 2);
-		functions_vec.push((name, exp));
-	}
-	let mut functions = std::collections::BTreeMap::new();
-	let mut parser_data = app::parser::Data::default();
-	for (name, exp) in functions_vec.iter().cloned() {
-		let id = parser_data.cache.len();
-		parser_data.cache.push(None);
-		parser_data.cache2.push(None);
-		let exp = app::parser::E::Cloned(Rc::new(exp), id);
 		functions.insert(name, exp);
 	}
-	let mut init_state = std::fs::File::open("data/init_state.txt").unwrap();
-	let mut state = String::new();
-	init_state.read_to_string(&mut state).expect("ini_state read error");
-	let mut state = parser::parse_lisp(&state).0;
+
+	let mut state = prepare_init_state(&args);
 
 	let mut stack = vec![];
 	let stdin = std::io::stdin();
@@ -40,7 +52,7 @@ fn run() {
 	let mut current_data = E::Num(0.into());
 	for iter in 0.. {
 		let (x, y) = if iter == 0 {
-			(0, 0)
+			(9999, 9999)
 		} else {
 			let mut line = String::new();
 			if let Ok(_) = std::env::var("GUI") {
@@ -69,15 +81,14 @@ fn run() {
 				continue;
 			}
 		};
-		let s = format!("ap ap cons {} {}", x, y);
-		let xy = parse(&s.split_whitespace().collect::<Vec<_>>(), 0).0;
+		let xy = E::Pair(Rc::new(E::Num(x.into())), Rc::new(E::Num(y.into())));
 		let exp = E::Ap(
 			Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
-		parser_data.reset(functions.len());
-		let f = eval(&exp, &functions, false, &mut parser_data);
-		let f = eval(&f, &functions, true, &mut parser_data);
+		let mut data = app::parser::Data::default();
+		let f = eval(&exp, &functions, false, &mut data);
+		let f = eval(&f, &functions, true, &mut data);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
 			if let E::Pair(a, b) = a.as_ref() {
 				if let E::Pair(data, _) = b.as_ref() {
@@ -98,15 +109,16 @@ fn run() {
 			eprintln!("flag = {}", flag);
 			eprintln!("state: {}", state);
 			while flag {
-				eprintln!("send: {}", app::modulation::modulate(&data));
-				let resp = send(&app::modulation::modulate(&data));
+				let modulated = app::modulation::modulate(&data);
+				eprintln!("send: {}", &modulated);
+				let resp = send(&modulated);
 				eprintln!("resp: {}", &resp[0..resp.len().min(50)]);
 				let resp = app::modulation::demodulate(&resp);
 				let exp = E::Ap(
 					Rc::new(E::Ap(Rc::new(E::Etc(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				parser_data.reset(functions.len());
+				let mut parser_data = app::parser::Data::default();
 				let f = eval(&exp, &functions, false, &mut parser_data);
 				let f = eval(&f, &functions, true, &mut parser_data);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {
@@ -131,6 +143,10 @@ fn run() {
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
 			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
+
+			if args.recognize {
+				app::recognize::recognize(&current_data);
+			}
 		} else {
 			eprintln!("orz");
 		}
