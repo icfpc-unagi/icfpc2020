@@ -112,7 +112,7 @@ fn run() {
 		};
 		let xy = E::Pair(Rc::new(E::Num(x.into())), Rc::new(E::Num(y.into())));
 		let exp = E::Ap(
-			Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
+			Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
 			xy.into(),
 		);
 		let mut ev = evaluator.clone();
@@ -159,7 +159,7 @@ fn run() {
 				let resp = app::modulation::demodulate(&resp);
 				eprintln!("resp(lisp): {}", &resp);
 				let exp = E::Ap(
-					Rc::new(E::Ap(Rc::new(E::Etc(Etc::Other(":1338".to_owned()))), state.clone().into())),
+					Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
 				let mut ev = evaluator.clone();
