@@ -2,6 +2,11 @@ use reqwest::blocking as reqwest;
 use crate::parser::*;
 use crate::*;
 use itertools::*;
+use std::time::SystemTime;
+use std::env;
+use std::io::BufWriter;
+use std::fs::File;
+use std::io::Write;
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -90,6 +95,7 @@ impl From<&E> for Command {
 pub struct Client {
 	server_url: String,
 	player_key: String,
+	file: Option<BufWriter<File>>,
 	client: reqwest::Client
 }
 
@@ -98,9 +104,32 @@ impl Client {
 		Self {
 			server_url,
 			player_key: String::new(),
+			file: None,
 			client: reqwest::Client::new()
 		}
 	}
+
+	pub fn gui(&self, name: &str, e: &E) {
+		if let Ok(_) = env::var("JUDGE_SERVER") {
+			return;
+		}
+		let t = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+			Ok(t) => t.as_nanos(),
+			_ => 0,
+		};
+		let msg = format!("###GUI\t{}\t{}\t{}\t{}", t, self.player_key, name, e);
+		let mut printed = false;
+		if let Some(f) = &self.file {
+			// f.write_all(msg.as_bytes());
+			printed = true;
+		}
+		if let Ok(_) = env::var("GUI") {
+			println!("###GUI\t{}\t{}\t{}\t{}", t, self.player_key, name, e);
+		} else if !printed {
+			println!("###GUI\t{}\t{}\t{}\t{}", t, self.player_key, name, e);
+		}
+	}
+
 	pub fn send(&self, msg: &str) -> E {
 		eprintln!("send: {}", msg);
 		let msg = to_text(&parse_lisp(msg).0);
@@ -108,16 +137,22 @@ impl Client {
 		let (exp, n) = parser::parse(&ss, 0);
 		assert_eq!(n, ss.len());
 		let e = parser::eval(&exp, true);
+		self.gui("SEND", &e);
 		let msg = modulation::modulate(&e);
 		eprintln!("send: {}", msg);
 		let resp = self.client.post(&self.server_url).body(msg).send().unwrap().text().unwrap();
 		eprintln!("resp: {}", resp);
 		let resp = modulation::demodulate(&resp);
 		eprintln!("resp: {}", resp);
+		self.gui("RESP", &resp);
 		resp
 	}
 	pub fn join(&mut self, player_key: &str) -> Response {
 		self.player_key = player_key.to_owned();
+		if let Err(_) = env::var("JUDGE_SERVER") {
+			self.file = Some(BufWriter::new(File::create(
+				&format!("out/{}", self.player_key)).expect("out is missing")));
+		}
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
 	}
