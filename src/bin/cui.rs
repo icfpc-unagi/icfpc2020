@@ -37,20 +37,7 @@ fn run() {
 	println!("Args: {:?}", &args);
 	let recognizer = recognize::Recognizer::new();
 	let mut recognition_result = recognize::RecognitionResult::new_empty();
-	let f = std::fs::File::open("data/galaxy.txt").unwrap();
-	let f = std::io::BufReader::new(f);
-	let mut evaluator = app::parser::Evaluator::default();
-	// let mut functions = std::collections::BTreeMap::new();
-	for line in f.lines() {
-		let line = line.unwrap();
-		let ss = line.split_whitespace().collect::<Vec<_>>();
-		let name = ss[0].to_owned();
-		let (exp, n) = parse(&ss[2..], 0);
-		assert_eq!(n, ss.len() - 2);
-		// functions.insert(name, exp);
-		evaluator.insert_function(name, exp);
-	}
-
+	let mut ev = parser::Evaluator::new(std::fs::File::open("data/galaxy.txt").unwrap());
 	// FOR PERFORMANCE TEST.
 	let mut expected_requests = vec![
 		"11011000011101000",
@@ -116,10 +103,10 @@ fn run() {
 		};
 		let xy = E::Pair(Rc::new(E::Num(x.into())), Rc::new(E::Num(y.into())));
 		let exp = E::Ap(
-			Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
+			Rc::new(E::Ap(Rc::new(E::Function(1338)), state.clone().into())),
 			xy.into(),
 		);
-		let mut ev = evaluator.clone();
+		ev.clear_cache();
 		let f = ev.eval(&exp, false);
 		let f = ev.eval(&f, true);
 		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
@@ -166,7 +153,7 @@ fn run() {
 					Rc::new(E::Ap(Rc::new(E::Other(":1338".to_owned())), state.clone().into())),
 					resp.into(),
 				);
-				let mut ev = evaluator.clone();
+				ev.clear_cache();
 				let f = ev.eval(&exp, false);
 				let f = ev.eval(&f, true);
 				let (new_flag, new_state, new_data) = if let E::Pair(flag, a) = f {

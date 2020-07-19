@@ -1,6 +1,5 @@
 use std;
 use num::*;
-use std::collections::*;
 use std::rc::Rc;
 
 pub type Int = i128;
@@ -14,6 +13,7 @@ pub enum E {
 	T,
 	F,
 	Cons,
+	Function(usize),
 	Other(String),
 	Cloned(Rc<E>, usize),
 }
@@ -43,6 +43,7 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 			"t" => E::T,
 			"f" => E::F,
 			"cons" => E::Cons,
+			f if f.starts_with(":") => E::Function(f[1..].parse().unwrap()),
 			_ => E::Other(ss[i].to_owned()),
 		}, i + 1)
 	}
@@ -59,232 +60,266 @@ impl Into<(Int, Int)> for &E {
 	}
 }
 
-#[derive(Clone, Default)]
-pub struct Data {
-	pub count: BTreeMap<String, usize>,
-	pub cache: Vec<Option<E>>,
-	pub cache2: Vec<Option<E>>,
-}
-
-#[deprecated(note="Please use Evaluator.eval")]
-pub fn eval(e: &E, map: &BTreeMap<String, E>, eval_tuple: bool, data: &mut Data) -> E {
-	let mut ev = Evaluator::default();
-	ev.map = map.clone();  // fixme: maybe slow
-	ev.data = std::mem::take(data);
-	let out = ev.eval(e, eval_tuple);
-	*data = ev.data;
-	out
+pub fn eval(e: &E, eval_tuple: bool) -> E {
+	Evaluator::default().eval(e, eval_tuple)
 }
 
 #[derive(Clone, Default)]
 pub struct Evaluator {
-	pub map: BTreeMap<String, E>,
-	pub data: Data,
+	pub functions: Vec<E>,
+	pub count: Vec<usize>,
+	pub cache: Vec<Option<E>>,
+	pub cache2: Vec<Option<E>>,
+	m: usize,
 }
 
 impl Evaluator {
-	pub fn insert_function(&mut self, name: String, exp: E) {
-		self.map.insert(name, exp);
-	}
-
-pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
-	match e {
-		E::Cloned(a, id) => {
-			if !eval_tuple {
-				if let Some(ref b) = self.data.cache[*id] {
-					b.clone()
-				} else {
-					let b = self.eval(a.as_ref(), eval_tuple);
-					self.data.cache[*id] = Some(b.clone());
-					b
+	
+	pub fn new(f: std::fs::File) -> Self {
+		use std::io::prelude::*;
+		let f = std::io::BufReader::new(f);
+		let mut functions = vec![];
+		for line in f.lines() {
+			let line = line.unwrap();
+			let ss = line.split_whitespace().collect::<Vec<_>>();
+			let name = ss[0].to_owned();
+			let (exp, n) = parse(&ss[2..], 0);
+			assert_eq!(n, ss.len() - 2);
+			if name.starts_with(":") {
+				let id = name[1..].parse().unwrap();
+				if functions.len() <= id {
+					functions.resize(id + 1, E::Nil);
 				}
-			} else {
-				if let Some(ref b) = self.data.cache2[*id] {
-					b.clone()
-				} else {
-					let b = self.eval(a.as_ref(), eval_tuple);
-					self.data.cache2[*id] = Some(b.clone());
-					b
-				}
+				functions[id] = exp;
 			}
 		}
-		E::Ap(x1, y1) => {
-			let x1 = self.eval(&x1, eval_tuple);
-			match &x1 {
-				E::Ap(x2, y2) => match x2.as_ref() {
-					E::Cons => {
-						if eval_tuple {
-							E::Pair(
-								self.eval(y2, eval_tuple).into(),
-								self.eval(y1, eval_tuple).into(),
-							)
-						} else {
-							E::Pair(y2.clone(), y1.clone().into())
-						}
+		let n = functions.len();
+		let mut ev = Evaluator { functions, count: vec![0; n], cache: vec![None; n], cache2: vec![None; n], m: n };
+		for i in 0..n {
+			let f = ev.functions[i].clone();
+			ev.cache[i] = Some(ev.eval(&f, false));
+			eprintln!("f: {}", i);
+			// if ![1096, 1104, 1433, 1434, 1435, 1436, 1437].contains(&i) {
+				ev.cache2[i] = Some(ev.eval(&f, true));
+			// }
+		}
+		ev.m = ev.cache.len();
+		ev
+	}
+	
+	pub fn clear_cache(&mut self) {
+		self.cache.truncate(self.m);
+		self.cache2.truncate(self.m);
+	}
+	
+	pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
+		match e {
+			E::Cloned(a, id) => {
+				if !eval_tuple {
+					if let Some(ref b) = self.cache[*id] {
+						b.clone()
+					} else {
+						let b = self.eval(a.as_ref(), eval_tuple);
+						self.cache[*id] = Some(b.clone());
+						b
 					}
-					E::Other(name) if name == "eq" => {
-						let y1 = self.eval(&y1, eval_tuple);
-						let y2 = self.eval(&y2, eval_tuple);
-						match (&y1, &y2) {
-							(E::Num(y1), E::Num(y2)) => {
-								if y1 == y2 {
-									E::T
-								} else {
-									E::F
-								}
-							}
-							_ => panic!("eq with {} and {} is invalid", y2, y1),
-						}
+				} else {
+					if let Some(ref b) = self.cache2[*id] {
+						b.clone()
+					} else {
+						let b = self.eval(a.as_ref(), eval_tuple);
+						self.cache2[*id] = Some(b.clone());
+						b
 					}
-					E::T => self.eval(&y2, eval_tuple),
-					E::F => self.eval(&y1, eval_tuple),
-					E::Other(name) if name == "add" => {
-						let y1 = self.eval(&y1, eval_tuple);
-						let y2 = self.eval(&y2, eval_tuple);
-						match (y1, y2) {
-							(E::Num(y1), E::Num(y2)) => E::Num(y1 + y2),
-							(y1, y2) => panic!("add with {} and {} is invalid", y2, y1),
-						}
-					}
-					E::Other(name) if name == "mul" => {
-						let y1 = self.eval(&y1, eval_tuple);
-						let y2 = self.eval(&y2, eval_tuple);
-						match (&y1, &y2) {
-							(E::Num(y1), E::Num(y2)) => E::Num(y1 * y2),
-							_ => panic!("mul with {} and {} is invalid", y2, y1),
-						}
-					}
-					E::Other(name) if name == "div" => {
-						let y1 = self.eval(&y1, eval_tuple);
-						let y2 = self.eval(&y2, eval_tuple);
-						match (&y1, &y2) {
-							(E::Num(y1), E::Num(y2)) => E::Num(y2 / y1),
-							_ => panic!("div with {} and {} is invalid", y2, y1),
-						}
-					}
-					E::Other(name) if name == "lt" => {
-						let y1 = self.eval(&y1, eval_tuple);
-						let y2 = self.eval(&y2, eval_tuple);
-						match (&y1, &y2) {
-							(E::Num(y1), E::Num(y2)) => {
-								if y2 < y1 {
-									E::T
-								} else {
-									E::F
-								}
-							}
-							_ => panic!("lt with {} and {} is invalid", y2, y1),
-						}
-					}
-					E::Ap(x3, y3) => match x3.as_ref() {
-						E::Other(name) if name == "b" => self.eval(
-							&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
-							eval_tuple,
-						),
-						E::Other(name) if name == "c" => self.eval(
-							&E::Ap(Rc::new(E::Ap(y3.clone(), y1.clone())), y2.clone()),
-							eval_tuple,
-						),
-						E::Other(name) if name == "s" => {
-							let id = self.data.cache.len();
-							self.data.cache.push(None);
-							self.data.cache2.push(None);
-							self.eval(
-								&E::Ap(
-									Rc::new(E::Ap(y3.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
-									Rc::new(E::Ap(y2.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
-								),
-								eval_tuple,
-							)
-						}
-						E::Other(name) if name == "if0" => {
-							if let E::Num(a) = self.eval(y3, eval_tuple) {
-								if a.is_zero() {
-									self.eval(y2, eval_tuple)
-								} else {
-									self.eval(y1, eval_tuple)
-								}
+				}
+			}
+			E::Ap(x1, y1) => {
+				let x1 = self.eval(&x1, eval_tuple);
+				match &x1 {
+					E::Ap(x2, y2) => match x2.as_ref() {
+						E::Cons => {
+							if eval_tuple {
+								E::Pair(
+									self.eval(y2, eval_tuple).into(),
+									self.eval(y1, eval_tuple).into(),
+								)
 							} else {
-								panic!("if0 with {}, {} and {} is invalid", y3, y2, y1)
+								E::Pair(y2.clone(), y1.clone().into())
 							}
 						}
-						_ => E::Ap(Rc::new(x1), y1.clone()),
-					},
-					_ => E::Ap(x1.clone().into(), y1.clone().into()),
-				},
-				E::Pair(a, b) => self.eval(
-					&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
-					eval_tuple,
-				),
-				E::Other(name) if name == "inc" => {
-					if let E::Num(a) = self.eval(y1, eval_tuple) {
-						E::Num(a + 1)
-					} else {
-						panic!("inc with {} is invalid", y1);
-					}
-				}
-				E::Other(name) if name == "dec" => {
-					if let E::Num(a) = self.eval(y1, eval_tuple) {
-						E::Num(a - 1)
-					} else {
-						panic!("dec with {} is invalid", y1);
-					}
-				}
-				E::Other(name) if name == "neg" => {
-					if let E::Num(a) = self.eval(y1, eval_tuple) {
-						E::Num(-a)
-					} else {
-						panic!("neg with {} is invalid", y1);
-					}
-				}
-				E::Other(name) if name == "car" => {
-					if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
-						self.eval(&a, eval_tuple)
-					} else {
-						panic!("car with {} is invalid", y1);
-					}
-				}
-				E::Other(name) if name == "cdr" => {
-					if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
-						self.eval(&a, eval_tuple)
-					} else {
-						panic!("cdr with {} is invalid", y1);
-					}
-				}
-				E::Other(name) if name == "isnil" => {
-					let y1 = self.eval(y1, eval_tuple);
-					match y1 {
-						E::Nil => E::T,
-						E::Pair(_, _) => E::F,
-						E::T | E::F | E::Cons | E::Other(_) => {
-							eprintln!("warning: isnil {}", &y1);
-							E::F
+						E::Other(name) if name == "eq" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							match (&y1, &y2) {
+								(E::Num(y1), E::Num(y2)) => {
+									if y1 == y2 {
+										E::T
+									} else {
+										E::F
+									}
+								}
+								_ => panic!("eq with {} and {} is invalid", y2, y1),
+							}
 						}
-						_ => panic!("isnil with {} is invalid", y1),
+						E::T => self.eval(&y2, eval_tuple),
+						E::F => self.eval(&y1, eval_tuple),
+						E::Other(name) if name == "add" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							match (y1, y2) {
+								(E::Num(y1), E::Num(y2)) => E::Num(y1 + y2),
+								(y1, y2) => panic!("add with {} and {} is invalid", y2, y1),
+							}
+						}
+						E::Other(name) if name == "mul" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							match (&y1, &y2) {
+								(E::Num(y1), E::Num(y2)) => E::Num(y1 * y2),
+								_ => panic!("mul with {} and {} is invalid", y2, y1),
+							}
+						}
+						E::Other(name) if name == "div" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							match (&y1, &y2) {
+								(E::Num(y1), E::Num(y2)) => E::Num(y2 / y1),
+								_ => panic!("div with {} and {} is invalid", y2, y1),
+							}
+						}
+						E::Other(name) if name == "lt" => {
+							let y1 = self.eval(&y1, eval_tuple);
+							let y2 = self.eval(&y2, eval_tuple);
+							match (&y1, &y2) {
+								(E::Num(y1), E::Num(y2)) => {
+									if y2 < y1 {
+										E::T
+									} else {
+										E::F
+									}
+								}
+								_ => panic!("lt with {} and {} is invalid", y2, y1),
+							}
+						}
+						E::Ap(x3, y3) => match x3.as_ref() {
+							E::Other(name) if name == "b" => self.eval(
+								&E::Ap(y3.clone(), Rc::new(E::Ap(y2.clone(), y1.clone()))),
+								eval_tuple,
+							),
+							E::Other(name) if name == "c" => self.eval(
+								&E::Ap(Rc::new(E::Ap(y3.clone(), y1.clone())), y2.clone()),
+								eval_tuple,
+							),
+							E::Other(name) if name == "s" => {
+								let id = self.cache.len();
+								self.cache.push(None);
+								self.cache2.push(None);
+								self.eval(
+									&E::Ap(
+										Rc::new(E::Ap(y3.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
+										Rc::new(E::Ap(y2.clone(), Rc::new(E::Cloned(y1.clone(), id)))),
+									),
+									eval_tuple,
+								)
+							}
+							E::Other(name) if name == "if0" => {
+								if let E::Num(a) = self.eval(y3, eval_tuple) {
+									if a.is_zero() {
+										self.eval(y2, eval_tuple)
+									} else {
+										self.eval(y1, eval_tuple)
+									}
+								} else {
+									panic!("if0 with {}, {} and {} is invalid", y3, y2, y1)
+								}
+							}
+							_ => E::Ap(Rc::new(x1), y1.clone()),
+						},
+						_ => E::Ap(x1.clone().into(), y1.clone().into()),
+					},
+					E::Pair(a, b) => self.eval(
+						&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
+						eval_tuple,
+					),
+					E::Other(name) if name == "inc" => {
+						if let E::Num(a) = self.eval(y1, eval_tuple) {
+							E::Num(a + 1)
+						} else {
+							panic!("inc with {} is invalid", y1);
+						}
 					}
-				},
-				E::Other(name) if name == "i" => self.eval(y1.as_ref(), eval_tuple),
-				E::Nil => E::T,
-				_ => E::Ap(Rc::new(x1), y1.clone().into()),
+					E::Other(name) if name == "dec" => {
+						if let E::Num(a) = self.eval(y1, eval_tuple) {
+							E::Num(a - 1)
+						} else {
+							panic!("dec with {} is invalid", y1);
+						}
+					}
+					E::Other(name) if name == "neg" => {
+						if let E::Num(a) = self.eval(y1, eval_tuple) {
+							E::Num(-a)
+						} else {
+							panic!("neg with {} is invalid", y1);
+						}
+					}
+					E::Other(name) if name == "car" => {
+						if let E::Pair(a, _) = self.eval(y1, eval_tuple) {
+							self.eval(&a, eval_tuple)
+						} else {
+							panic!("car with {} is invalid", y1);
+						}
+					}
+					E::Other(name) if name == "cdr" => {
+						if let E::Pair(_, a) = self.eval(y1, eval_tuple) {
+							self.eval(&a, eval_tuple)
+						} else {
+							panic!("cdr with {} is invalid", y1);
+						}
+					}
+					E::Other(name) if name == "isnil" => {
+						let y1 = self.eval(y1, eval_tuple);
+						match y1 {
+							E::Nil => E::T,
+							E::Pair(_, _) => E::F,
+							E::T | E::F | E::Cons | E::Other(_) => {
+								eprintln!("warning: isnil {}", &y1);
+								E::F
+							}
+							_ => panic!("isnil with {} is invalid", y1),
+						}
+					},
+					E::Other(name) if name == "i" => self.eval(y1.as_ref(), eval_tuple),
+					E::Nil => E::T,
+					_ => E::Ap(Rc::new(x1), y1.clone().into()),
+				}
 			}
-		}
-		E::Other(name) if name.starts_with(":") => {
-			*self.data.count.entry(name.clone()).or_insert(0) += 1;
-			if let Some(func_ref) = self.map.get(name) {
-				let func = func_ref.clone();
-				let func_ref = &func;  // fixme
-				self.eval(func_ref, eval_tuple)
-			} else {
-				panic!("no such function: {}", name)
+			E::Function(id) => {
+				self.count[*id] += 1;
+				if !eval_tuple {
+					if let Some(ref b) = self.cache[*id] {
+						b.clone()
+					} else {
+						let f = self.functions[*id].clone();
+						let b = self.eval(&f, eval_tuple);
+						b
+					}
+				} else {
+					if let Some(ref b) = self.cache2[*id] {
+						b.clone()
+					} else {
+						let f = self.functions[*id].clone();
+						let b = self.eval(&f, eval_tuple);
+						b
+					}
+				}
 			}
+			E::Pair(a, b) if eval_tuple => E::Pair(
+				self.eval(a, eval_tuple).into(),
+				self.eval(b, eval_tuple).into(),
+			),
+			e => e.clone(),
 		}
-		E::Pair(a, b) if eval_tuple => E::Pair(
-			self.eval(a, eval_tuple).into(),
-			self.eval(b, eval_tuple).into(),
-		),
-		e => e.clone(),
 	}
-}
 }
 
 pub fn simplify(e: &E) -> E {
@@ -359,6 +394,7 @@ impl std::fmt::Display for E {
 					write!(f, "<{}, {}>", a, b)?
 				}
 			},
+			E::Function(id) => write!(f, ":{}", id)?,
 			E::Other(name) => write!(f, "{}", name)?,
 			E::Nil => write!(f, "[]")?,
 			E::T => write!(f, "t")?,
