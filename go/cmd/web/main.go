@@ -165,6 +165,10 @@ func main() {
 
 	http.HandleFunc("/", handle)
 	http.Handle("/out/", http.StripPrefix("/out/", http.FileServer(http.Dir("out"))))
-	glog.Info("Starting server...")
-	http.ListenAndServe(":8001", nil)
+	addr := os.Getenv("GUI_ADDRESS")
+	if addr == "" {
+		addr = ":8001"
+	}
+	glog.Infof("Starting server (%s)...", addr)
+	http.ListenAndServe(addr, nil)
 }
