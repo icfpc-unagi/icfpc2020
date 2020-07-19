@@ -76,7 +76,12 @@ fn run() {
 				eprintln!("EOF");
 				return;
 			}
-			let line = recognition_result.filter_command(line.trim());
+			let mut line = recognition_result.filter_command(line.trim());
+			if line.starts_with("!") {
+				stack.push((state.clone(), current_data.clone()));
+				state = parser::parse_lisp(&line[1..]).0;
+				line = "9999 9999".to_owned();
+			}
 
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
@@ -92,6 +97,8 @@ fn run() {
 
 				continue;
 			} else if ss.len() != 2 {
+				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
 				eprintln!("illegal input");
 				continue;
 			} else if let (Ok(x), Ok(y)) = (ss[0].parse(), ss[1].parse()) {
