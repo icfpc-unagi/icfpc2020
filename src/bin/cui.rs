@@ -29,7 +29,7 @@ fn run() {
 	let mut current_data = E::Num(0.into());
 	for iter in 0.. {
 		let (x, y) = if iter == 0 {
-			(0, 0)
+			(9999, 9999)
 		} else {
 			let mut line = String::new();
 			let _ = stdin.read_line(&mut line).unwrap();
