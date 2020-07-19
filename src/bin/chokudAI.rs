@@ -89,28 +89,28 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 	{
 
 		if myship.pos.0 >= 0 && myship.pos.0.abs() >= myship.pos.1.abs() {
-			if myship.v.1 < 5 {
+			if myship.v.1 < 7 {
 				addy = 1;
-				if myship.v.0 < -2 {addx = 1;}
+				if myship.v.0 < 0 {addx = 1;}
 			}
 		}
 		if myship.pos.0 <= 0 && myship.pos.0.abs() >= myship.pos.1.abs() {
-			if myship.v.1 > -5 { 
+			if myship.v.1 > -7 { 
 				addy = -1;
-				if myship.v.0 > 2 {addx = -1;}
+				if myship.v.0 > 0 {addx = -1;}
 			}
 		}
 
 		if myship.pos.1 >= 0 && myship.pos.1.abs() >= myship.pos.0.abs() {
-			if myship.v.0 > -5 {
+			if myship.v.0 > -7 {
 				addx = -1;
-				if myship.v.1 < -2 {addy = 1;}
+				if myship.v.1 < 0 {addy = 1;}
 			}
 		}
 		if myship.pos.1 <= 0 && myship.pos.1.abs() >= myship.pos.0.abs() {
-			if myship.v.0 < 5 { 
+			if myship.v.0 < 7 { 
 				addx = 1;
-				if myship.v.1 > 2 {addy = -1;}
+				if myship.v.1 > 0 {addy = -1;}
 			}
 		}
 	}
@@ -135,6 +135,8 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32) -> Vec<Command> {
 
 	let maxlen = (myship.pos.0-enemyship.pos.0).abs().max( (myship.pos.1-enemyship.pos.1).abs());
 	let minlen = (myship.pos.0-enemyship.pos.0).abs().min( (myship.pos.1-enemyship.pos.1).abs());
+
+
 
 	if maxlen * 1 / 10 >= minlen && maxlen * 9 / 10 <= minlen {shoot_flag = false;}
 
