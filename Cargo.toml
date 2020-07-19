@@ -17,6 +17,7 @@ colorous = "*"
 follow-redirects = "*"
 reqwest = { version = "*", features = ["blocking"] }
 structopt = "*"
+itertools = "*"
 
 [profile.release]
 debug = true
