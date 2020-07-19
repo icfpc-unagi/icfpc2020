@@ -2,15 +2,15 @@ use super::parser::*;
 use num::cast::ToPrimitive;
 use num::BigInt;
 
-fn collect_coords(e: &E) -> (num::BigInt, num::BigInt) {
+fn collect_coords(e: &E) -> (Int, Int) {
     e.into()
 }
 
-pub fn collect_list_of_coords(e: &E) -> Vec<(num::BigInt, num::BigInt)> {
+pub fn collect_list_of_coords(e: &E) -> Vec<(Int, Int)> {
     e.into_iter().map(|e| collect_coords(e)).collect()
 }
 
-pub fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(num::BigInt, num::BigInt)>> {
+pub fn collect_list_of_list_of_coords(e: &E) -> Vec<Vec<(Int, Int)>> {
     e.into_iter().map(|e| collect_list_of_coords(e)).collect()
 }
 
@@ -18,7 +18,7 @@ fn bigint_to_usize(x: &BigInt) -> usize {
     x.to_usize().unwrap()
 }
 
-pub fn create_bitmap_with_offset(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> (Vec<Vec<bool>>, (BigInt, BigInt)) {
+pub fn create_bitmap_with_offset(list_of_coords: &Vec<(Int, Int)>) -> (Vec<Vec<bool>>, (Int, Int)) {
     if list_of_coords.len() == 0 {
         (vec![vec![]], (0.into(), 0.into()))
     } else {
@@ -26,24 +26,24 @@ pub fn create_bitmap_with_offset(list_of_coords: &Vec<(num::BigInt, num::BigInt)
         let max_x = list_of_coords.iter().map(|c| c.0.clone()).max().unwrap();
         let min_y = list_of_coords.iter().map(|c| c.1.clone()).min().unwrap();
         let max_y = list_of_coords.iter().map(|c| c.1.clone()).max().unwrap();
-        let w = bigint_to_usize(&(max_x.clone() - min_x.clone())) + 1;
-        let h = bigint_to_usize(&(max_y.clone() - min_y.clone())) + 1;
+        let w = (max_x - min_x + 1) as usize;
+        let h = (max_y - min_y + 1) as usize;
 
         let mut bitmap = vec![vec![false; w]; h];
         for coord in list_of_coords {
-            let x = bigint_to_usize(&(&coord.0.clone() - min_x.clone()));
-            let y = bigint_to_usize(&(&coord.1.clone() - min_y.clone()));
-            bitmap[y][x] = true;
+            let x = coord.0 - min_x;
+            let y = coord.1 - min_y;
+            bitmap[y as usize][x as usize] = true;
         }
         (bitmap, (min_x, min_y))
     }
 }
 
-pub fn create_bitmap(list_of_coords: &Vec<(num::BigInt, num::BigInt)>) -> Vec<Vec<bool>> {
+pub fn create_bitmap(list_of_coords: &Vec<(Int, Int)>) -> Vec<Vec<bool>> {
     create_bitmap_with_offset(list_of_coords).0
 }
 
-pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
+pub fn draw(list_of_coords: &Vec<(Int, Int)>, name: &str) {
     println!("---------- {} ----------", name);
 
     let bitmap = create_bitmap(list_of_coords);
@@ -61,7 +61,7 @@ pub fn draw(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, name: &str) {
 }
 
 /*
-pub fn multidraw_stacked(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::BigInt)>>) {
+pub fn multidraw_stacked(list_of_list_of_coords: &Vec<Vec<(Int, Int)>>) {
     println!("---------- stacked ----------");
 
     let min_x = list_of_list_of_coords.iter().map(|loc| loc.iter()).flatten().map(|c| &c.0).min();
@@ -91,7 +91,7 @@ pub fn multidraw_stacked(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::Big
 }
  */
 
-pub fn multidraw(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::BigInt)>>) {
+pub fn multidraw(list_of_list_of_coords: &Vec<Vec<(Int, Int)>>) {
     for (i, list_of_coords) in list_of_list_of_coords.iter().enumerate() {
         draw(list_of_coords, &format!("{}", i));
     }
@@ -115,7 +115,7 @@ pub fn multidraw_stacked_from_e_to_file_scale(list_of_list_of_coords: &E, path: 
     img.save(path).unwrap();
 }
 
-pub fn draw_from_vec_to_file(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, path: &str) {
+pub fn draw_from_vec_to_file(list_of_coords: &Vec<(Int, Int)>, path: &str) {
     let img = super::draw::draw(list_of_coords);
     img.save(path).unwrap();
 }
@@ -134,7 +134,7 @@ pub fn multidraw_from_e_to_files(list_of_list_of_coords: &E, path_prefix: &str) 
 
 /*
 
-pub fn multidraw(list_of_list_of_coords: &Vec<Vec<(num::BigInt, num::BigInt)>>) {
+pub fn multidraw(list_of_list_of_coords: &Vec<Vec<(Int, Int)>>) {
     for (i, list_of_coords) in list_of_list_of_coords.iter().enumerate() {
         draw(list_of_coords, &format!("{}", i));
     }
@@ -152,7 +152,7 @@ pub fn multidraw_stacked_from_e_to_file(list_of_list_of_coords: &E, path: &str) 
     img.save(path).unwrap();
 }
 
-pub fn draw_from_vec_to_file(list_of_coords: &Vec<(num::BigInt, num::BigInt)>, path: &str) {
+pub fn draw_from_vec_to_file(list_of_coords: &Vec<(Int, Int)>, path: &str) {
     let img = super::draw::draw(list_of_coords);
     img.save(path).unwrap();
 }

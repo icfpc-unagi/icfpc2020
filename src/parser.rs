@@ -3,10 +3,12 @@ use num::*;
 use std::collections::*;
 use std::rc::Rc;
 
+pub type Int = i128;
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum E {
 	Ap(Rc<E>, Rc<E>),
-	Num(BigInt),
+	Num(Int),
 	Pair(Rc<E>, Rc<E>),
 	Etc(Etc),
 	Cloned(Rc<E>, usize),
@@ -54,7 +56,7 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 	// 		}
 	// 	}
 	// 	(E::List(list), i + 1)
-	} else if let Ok(a) = ss[i].parse::<BigInt>() {
+	} else if let Ok(a) = ss[i].parse::<Int>() {
 		(E::Num(a), i + 1)
 	} else {
 		(E::Etc(match ss[i] {
@@ -67,8 +69,8 @@ pub fn parse(ss: &[&str], i: usize) -> (E, usize) {
 	}
 }
 
-impl Into<(BigInt, BigInt)> for &E {
-	fn into(self) -> (BigInt, BigInt) {
+impl Into<(Int, Int)> for &E {
+	fn into(self) -> (Int, Int) {
 		if let E::Pair(x, y) = self {
 			if let (E::Num(x), E::Num(y)) = (x.as_ref(), y.as_ref()) {
 				return (x.clone(), y.clone());
@@ -463,7 +465,7 @@ pub fn parse_lisp(s: &str) -> (E, &str) {
 	};
 	if p != 0 {
 		return (
-			if let Ok(a) = s[..p].parse::<BigInt>() {
+			if let Ok(a) = s[..p].parse::<Int>() {
 				E::Num(a)
 			} else {
 				E::Etc(Etc::Other(s[..p].to_owned()))

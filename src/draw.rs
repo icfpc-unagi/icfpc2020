@@ -5,15 +5,15 @@ use std::vec::Vec;
 
 const GRADIENT: colorous::Gradient = colorous::TURBO;
 
-pub fn translate_to_vec(e: &E) -> Vec<(BigInt, BigInt)> {
+pub fn translate_to_vec(e: &E) -> Vec<(Int, Int)> {
 	e.into_iter().map(|e| e.into()).collect()
 }
 
-pub fn translate_to_vecvec(e: &E) -> Vec<Vec<(BigInt, BigInt)>> {
+pub fn translate_to_vecvec(e: &E) -> Vec<Vec<(Int, Int)>> {
 	e.into_iter().map(|e| translate_to_vec(&e)).collect()
 }
 
-pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> DynamicImage {
+pub fn draw(dots: &Vec<(Int, Int)>) -> DynamicImage {
 	let ((w, h), offset) = range_v(dots);
 	let mut img = DynamicImage::new_luma8(w, h);
 	draw_on(&mut img, dots, &offset, Rgba([255, 255, 255, 255]));
@@ -21,7 +21,7 @@ pub fn draw(dots: &Vec<(BigInt, BigInt)>) -> DynamicImage {
 }
 
 // stack images vertically from top to bottom
-pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
+pub fn multidraw_stack(v: &Vec<Vec<(Int, Int)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
 	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(w, h, Rgb([255, 255, 255])));
 	draw_axes(&mut img, &offset, 10);
@@ -37,7 +37,7 @@ pub fn multidraw_stack(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 }
 
 // overwrite with gradient colormap
-pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
+pub fn multidraw_gradient(v: &Vec<Vec<(Int, Int)>>) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
 	let mut img = RgbImage::from_pixel(w, h, Rgb([255, 255, 255]));
 	for x in 0..w {
@@ -57,7 +57,7 @@ pub fn multidraw_gradient(v: &Vec<Vec<(BigInt, BigInt)>>) -> DynamicImage {
 	img
 }
 
-pub fn multidraw_gradient_scale(v: &Vec<Vec<(BigInt, BigInt)>>, scale: u32) -> DynamicImage {
+pub fn multidraw_gradient_scale(v: &Vec<Vec<(Int, Int)>>, scale: u32) -> DynamicImage {
 	let ((w, h), offset) = range_vv(v);
 	let mut img = DynamicImage::ImageRgb8(RgbImage::from_pixel(
 		w * scale,
@@ -66,7 +66,7 @@ pub fn multidraw_gradient_scale(v: &Vec<Vec<(BigInt, BigInt)>>, scale: u32) -> D
 	));
 	draw_axes(
 		&mut img,
-		&(&offset.0 * scale, &offset.1 * scale),
+		&(&offset.0 * scale as Int, &offset.1 * scale as Int),
 		10 * scale,
 	);
 	for i in 0..v.len() {
@@ -77,7 +77,7 @@ pub fn multidraw_gradient_scale(v: &Vec<Vec<(BigInt, BigInt)>>, scale: u32) -> D
 	img
 }
 
-fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt), step: u32) {
+fn draw_axes(img: &mut DynamicImage, offset: &(Int, Int), step: u32) {
 	const AXES_COLOR: Rgba<u8> = Rgba([255, 0, 0, 255]);
 	const GRID_COLOR: Rgba<u8> = Rgba([127, 127, 127, 255]);
 	if let Some(ya) = offset.1.to_u32() {
@@ -96,7 +96,7 @@ fn draw_axes(img: &mut DynamicImage, offset: &(BigInt, BigInt), step: u32) {
 	}
 }
 
-fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
+fn range_v(v: &Vec<(Int, Int)>) -> ((u32, u32), (Int, Int)) {
 	let (min_x, max_x, min_y, max_y) = (
 		v.iter().map(|c| &c.0).min().unwrap(),
 		v.iter().map(|c| &c.0).max().unwrap(),
@@ -111,7 +111,7 @@ fn range_v(v: &Vec<(BigInt, BigInt)>) -> ((u32, u32), (BigInt, BigInt)) {
 		(1 - min_x, 1 - min_y),
 	)
 }
-pub fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt)) {
+pub fn range_vv(vv: &Vec<Vec<(Int, Int)>>) -> ((u32, u32), (Int, Int)) {
 	let it = vv.iter().map(|loc| loc.iter()).flatten();
 	let (min_x, max_x, min_y, max_y) = (
 		it.clone().map(|c| &c.0).min().unwrap(),
@@ -130,8 +130,8 @@ pub fn range_vv(vv: &Vec<Vec<(BigInt, BigInt)>>) -> ((u32, u32), (BigInt, BigInt
 
 fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
 	img: &mut T,
-	dots: &Vec<(BigInt, BigInt)>,
-	offset: &(BigInt, BigInt),
+	dots: &Vec<(Int, Int)>,
+	offset: &(Int, Int),
 	px: Rgba<u8>,
 ) {
 	for dot in dots {
@@ -143,8 +143,8 @@ fn draw_on<T: GenericImage<Pixel = Rgba<u8>>>(
 
 fn draw_on_scale<P: Pixel, T: GenericImage<Pixel = P>>(
 	img: &mut T,
-	dots: &Vec<(BigInt, BigInt)>,
-	offset: &(BigInt, BigInt),
+	dots: &Vec<(Int, Int)>,
+	offset: &(Int, Int),
 	px: P,
 	scale: u32,
 ) {
@@ -159,27 +159,27 @@ fn draw_on_scale<P: Pixel, T: GenericImage<Pixel = P>>(
 	}
 }
 
-#[test]
-fn test_draw() {
-	let img = draw(&bigvecs(&[(1, 2), (-1, -1)]));
-	assert_eq!(img.get_pixel(2, 2), Rgba([0, 0, 0, 255]));
-	assert_eq!(img.get_pixel(3, 4), Rgba([255, 255, 255, 255]));
-}
+// #[test]
+// fn test_draw() {
+// 	let img = draw(&bigvecs(&[(1, 2), (-1, -1)]));
+// 	assert_eq!(img.get_pixel(2, 2), Rgba([0, 0, 0, 255]));
+// 	assert_eq!(img.get_pixel(3, 4), Rgba([255, 255, 255, 255]));
+// }
 
-#[test]
-#[ignore]
-fn test_draw_save() {
-	let img = draw(&bigvecs(&[(1, 2), (-1, -1), (10, 10)]));
-	let tmp = std::env::temp_dir().join("test_draw.png");
-	img.save(&tmp).unwrap();
-	std::fs::remove_file(&tmp).unwrap();
-}
+// #[test]
+// #[ignore]
+// fn test_draw_save() {
+// 	let img = draw(&bigvecs(&[(1, 2), (-1, -1), (10, 10)]));
+// 	let tmp = std::env::temp_dir().join("test_draw.png");
+// 	img.save(&tmp).unwrap();
+// 	std::fs::remove_file(&tmp).unwrap();
+// }
 
-#[cfg(test)]
-fn bigvecs(v: &[(i32, i32)]) -> Vec<(BigInt, BigInt)> {
-	v.iter()
-		.map(|(x, y)| (BigInt::from(*x), BigInt::from(*y)))
-		.collect()
-}
+// #[cfg(test)]
+// fn bigvecs(v: &[(i32, i32)]) -> Vec<(Int, Int)> {
+// 	v.iter()
+// 		.map(|(x, y)| (Int::from(*x), Int::from(*y)))
+// 		.collect()
+// }
 
 // cargo run --release --bin parser_iwiwi < ~/Dropbox/ICFPC2020/galaxy.txt
