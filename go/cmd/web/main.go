@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -35,6 +36,18 @@ type Game struct {
 
 var game Game
 var m sync.Mutex
+
+func getGUIAddress() string {
+	addr := os.Getenv("GUI_ADDRESS")
+	if addr != "" {
+		return addr
+	}
+	return ":8001"
+}
+
+func getImagePath() string {
+	return "out/" + fmt.Sprintf("%x", sha1.Sum([]byte(getGUIAddress())))[:8] + ".png";
+}
 
 func handle(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -101,7 +114,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		<input type=button value="Undo" onclick="$('input[name=input]')[0].value = 'undo'; $('form')[0].submit();">
 		</form>
 	`)
-	png, _ := os.Open("out/raw.png")
+	png, _ := os.Open(getImagePath())
 	img, _ := ioutil.ReadAll(png)
 	dataURI := "data:image/png;base64," + base64.StdEncoding.EncodeToString(img)
 	fmt.Fprintf(bw, `<img id="screen" src="%s" width="800px" style="image-rendering:pixelated">`, dataURI)
@@ -115,6 +128,7 @@ func main() {
 	flag.Parse()
 	var err error
 	game.cmd = exec.CommandContext(context.Background(), flag.Args()[0], flag.Args()[1:]...)
+	game.cmd.Env = append(os.Environ(), "IMAGE_OUTPUT=" + getImagePath())
 	game.stdin, err = game.cmd.StdinPipe()
 	if err != nil {
 		glog.Fatalf("Failed to get stdin pipe: %w", err)
@@ -166,10 +180,6 @@ func main() {
 
 	http.HandleFunc("/", handle)
 	http.Handle("/out/", http.StripPrefix("/out/", http.FileServer(http.Dir("out"))))
-	addr := os.Getenv("GUI_ADDRESS")
-	if addr == "" {
-		addr = ":8001"
-	}
-	glog.Infof("Starting server (%s)...", addr)
-	http.ListenAndServe(addr, nil)
+	glog.Infof("Starting server (%s)...", getGUIAddress())
+	http.ListenAndServe(getGUIAddress(), nil)
 }
