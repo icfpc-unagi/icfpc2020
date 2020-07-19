@@ -206,6 +206,10 @@ impl RecognitionResult {
     }
 
     pub fn filter_command(&self, original_command: &str) -> String {
+        if original_command.is_empty() {
+            return original_command.to_string();
+        }
+
         let mut matches = vec![];
         for ((c, x, y), rc) in self.chars.iter() {
             if rc.starts_with(original_command) {

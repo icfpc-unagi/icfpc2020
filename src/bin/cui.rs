@@ -94,6 +94,11 @@ fn run() {
 				current_data = prev_data;
 				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
 				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
+				if args.recognize {
+					recognition_result = recognizer.recognize(&current_data);
+					dbg!(&recognition_result);
+				}]
+
 				continue;
 			} else if ss.len() != 2 {
 				eprintln!("illegal input");
@@ -182,9 +187,7 @@ fn run() {
 			}
 			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
 			app::visualize::multidraw_stacked_from_e_to_file(&data, "out/raw.png");
-
 			if args.recognize {
-				app::visualize::multidraw_from_e(&data);
 				recognition_result = recognizer.recognize(&current_data);
 				dbg!(&recognition_result);
 			}
