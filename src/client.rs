@@ -52,6 +52,7 @@ pub enum Command {
 	Accelerate(i32, (i32, i32)),
 	Detonate(i32),
 	Shoot(i32, (i32, i32), i32),
+	Split(i32, Params),
 	Unknown,
 }
 
@@ -69,6 +70,7 @@ impl std::fmt::Display for Command {
 			Command::Accelerate(id, v) => write!(f, "[0, {}, <{}, {}>]", id, v.0, v.1)?,
 			Command::Detonate(id) => write!(f, "[1, {}]", id)?,
 			Command::Shoot(id, t, x3) => write!(f, "[2, {}, <{}, {}>, {}]", id, t.0, t.1, x3)?,
+			Command::Split(id, params) => write!(f, "[3, {}, [{}, {}, {}, {}]]", id, params.energy, params.power, params.cool, params.life)?,
 			_ => {
 				panic!("unreachable");
 			}
@@ -84,6 +86,10 @@ impl From<&E> for Command {
 			0 => Command::Accelerate(-1, get_pair(&e[1])),
 			1 => Command::Detonate(-1),
 			2 => Command::Shoot(-1, get_pair(&e[1]), get_num(&e[2])),
+			3 => {
+				let params = get_list(&e[1]).unwrap().into_iter().map(|e| get_num(&e)).collect::<Vec<_>>();
+				Command::Split(-1, Params { energy: params[0], power: params[1], cool: params[2], life: params[3] })
+			},
 			_ => Command::Unknown,
 		}
 	}
@@ -135,10 +141,10 @@ impl Client {
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
 	}
-	pub fn start(&self, energy: i32, power: i32, cool: i32, split: i32) -> Response {
+	pub fn start(&self, energy: i32, power: i32, cool: i32, life: i32) -> Response {
 		let resp = self.send(&format!(
 			"[3, {}, [{}, {}, {}, {}]]",
-			self.player_key, energy, power, cool, split
+			self.player_key, energy, power, cool, life
 		));
 		parse(resp)
 	}
@@ -213,7 +219,7 @@ pub fn parse(e: E) -> Response {
 		}
 	};
 	let state = get_list(&a[3]).unwrap();
-	let (tick, x1, ships) = if state.len() > 0 {
+	let (tick, x1, ships) = if state.len() > 0 { // unused x1 ??
 		let tick = get_num(&state[0]);
 		let range = get_list(&state[1])
 			.unwrap()
