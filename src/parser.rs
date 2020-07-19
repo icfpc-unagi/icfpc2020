@@ -24,14 +24,16 @@ impl E {
 		match self {
 			E::List(list, k) => {
 				// eprintln!("yes");
-				if k < list.len() {
-					let head = Rc::clone(&list[0]);
-					let tail = Rc::new(E::List(Rc::clone(&list), k+1));
-					E::Pair(head, tail)
-				} else {
-					assert_eq!(k, list.len());
-					E::Nil
-				}
+				assert!(k < list.len());
+				let head = Rc::clone(&list[0]);
+				let tail = Rc::new(
+					if k + 1 == list.len() {
+						E::Nil
+					} else {
+						E::List(Rc::clone(&list), k+1)
+					}
+				);
+				E::Pair(head, tail)
 			}
 			e => e,
 		}
