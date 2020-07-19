@@ -1,4 +1,4 @@
-use reqwest::blocking as reqwest;
+use ::reqwest::blocking as reqwest;
 use crate::parser::*;
 use crate::*;
 use itertools::*;
