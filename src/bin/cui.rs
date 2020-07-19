@@ -42,7 +42,11 @@ fn run() {
 			(0, 0)
 		} else {
 			let mut line = String::new();
-			let _ = stdin.read_line(&mut line).unwrap();
+			let bytes = stdin.read_line(&mut line).unwrap();
+			if bytes == 0 {
+			        eprintln!("EOF");
+			        return;
+			}
 			let ss = line.trim().split_whitespace().collect::<Vec<_>>();
 			if ss.len() == 1 && ss[0] == "undo" {
 				let (prev_state, prev_data) = stack.pop().unwrap();
