@@ -9,12 +9,17 @@ async fn send_async(s: String) -> String {
 		.build()
 		.unwrap();
 	let res = client
-		.post(&format!(
-			"{}/aliens/send?apiKey={}",
-			env::var("ICFPC_API_HOST").unwrap_or(
-				"https://icfpc2020-api.testkontur.ru".to_owned()),
-			env::var("ICFPC_API_KEY").expect("ICFPC_API_KEY must be specified")
-		))
+		.post(
+			&(if let Ok(p) = env::var("ICFPC_API_HOST") {
+				format!("{}/aliens/send", p)
+			} else {
+				format!(
+					"https://icfpc2020-api.testkontur.ru/aliens/send?apiKey={}",
+					env::var("ICFPC_API_KEY")
+						.expect("ICFPC_API_KEY must be specified")
+				)
+			})
+		)
 		.body(s.clone())
 		.send()
 		.await;

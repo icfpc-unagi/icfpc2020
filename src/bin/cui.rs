@@ -89,7 +89,9 @@ fn run() {
 				let (prev_state, prev_data) = stack.pop().unwrap();
 				state = prev_state;
 				current_data = prev_data;
-				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				if let Err(_) = env::var("JUDGE_SERVER") {
+					app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				}
 				if let Ok(p) = env::var("IMAGE_OUTPUT") {
 					app::visualize::multidraw_stacked_from_e_to_file(&current_data, &p);
 				}
@@ -105,8 +107,12 @@ fn run() {
 				}
 				continue;
 			} else if ss.len() != 2 {
-				app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
-				app::visualize::multidraw_stacked_from_e_to_file(&current_data, "out/raw.png");
+				if let Err(_) = env::var("JUDGE_SERVER") {
+					app::visualize::multidraw_stacked_from_e_to_file_scale(&current_data, "out/cui.png", 8);
+				}
+				if let Ok(p) = env::var("IMAGE_OUTPUT") {
+					app::visualize::multidraw_stacked_from_e_to_file(&current_data, &p);
+				}
 				eprintln!("illegal input");
 				continue;
 			} else if let (Ok(x), Ok(y)) = (ss[0].parse(), ss[1].parse()) {
@@ -192,7 +198,9 @@ fn run() {
 				eprintln!("flag = {}", flag);
 				eprintln!("state: {}", state);
 			}
-			app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+			if let Err(_) = env::var("JUDGE_SERVER") {
+				app::visualize::multidraw_stacked_from_e_to_file_scale(&data, "out/cui.png", 8);
+			}
 			if let Ok(p) = env::var("IMAGE_OUTPUT") {
 				app::visualize::multidraw_stacked_from_e_to_file(&data, &p);
 			}
