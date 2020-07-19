@@ -20,7 +20,7 @@ pub enum E {
 }
 
 impl E {
-	fn destruct_list(self) -> E {
+	pub fn matcher(self) -> E {
 		match self {
 			E::List(list, k) => {
 				// eprintln!("yes");
@@ -140,7 +140,7 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 			}
 		}
 		E::Ap(x1, y1) => {
-			let x1 = self.eval(&x1, eval_tuple).destruct_list();
+			let x1 = self.eval(&x1, eval_tuple).matcher();
 			match &x1 {
 				E::Ap(x2, y2) => match x2.as_ref() {
 					E::Cons => {
@@ -247,18 +247,6 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 					&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
 					eval_tuple,
 				),
-				/*
-				E::List(list, k) => {
-					if let E::Pair(a, b) = destruct_list(list, k) {
-						self.eval(
-							&E::Ap(Rc::new(E::Ap(y1.clone(), a.clone())), b.clone()),
-							eval_tuple,
-						)
-					} else {
-						panic!()
-					}
-				}
-				*/
 				E::Other(name) if name == "inc" => {
 					if let E::Num(a) = self.eval(y1, eval_tuple) {
 						E::Num(a + 1)
@@ -281,21 +269,21 @@ pub fn eval(&mut self, e: &E, eval_tuple: bool) -> E {
 					}
 				}
 				E::Other(name) if name == "car" => {
-					if let E::Pair(a, _) = self.eval(y1, eval_tuple).destruct_list() {
+					if let E::Pair(a, _) = self.eval(y1, eval_tuple).matcher() {
 						self.eval(&a, eval_tuple)
 					} else {
 						panic!("car with {} is invalid", y1);
 					}
 				}
 				E::Other(name) if name == "cdr" => {
-					if let E::Pair(_, a) = self.eval(y1, eval_tuple).destruct_list() {
+					if let E::Pair(_, a) = self.eval(y1, eval_tuple).matcher() {
 						self.eval(&a, eval_tuple)
 					} else {
 						panic!("cdr with {} is invalid", y1);
 					}
 				}
 				E::Other(name) if name == "isnil" => {
-					let y1 = self.eval(y1, eval_tuple).destruct_list();
+					let y1 = self.eval(y1, eval_tuple).matcher();
 					match y1 {
 						E::Nil => E::T,
 						E::Pair(_, _) => E::F,

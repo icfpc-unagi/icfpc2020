@@ -163,9 +163,9 @@ fn run() {
 		let mut ev = evaluator.clone();
 		let f = ev.eval(&exp, false);
 		let f = ev.eval(&f, true);
-		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f {
-			if let E::Pair(a, b) = a.as_ref() {
-				if let E::Pair(data, _) = b.as_ref() {
+		let (mut flag, new_state, mut data) = if let E::Pair(flag, a) = f.matcher() {
+			if let E::Pair(a, b) = a.as_ref().clone().matcher() {
+				if let E::Pair(data, _) = b.as_ref().clone().matcher() {
 					(flag.as_ref() != &E::Num(0.into()), a.as_ref().clone(), data.as_ref().clone())
 				} else {
 					panic!();
