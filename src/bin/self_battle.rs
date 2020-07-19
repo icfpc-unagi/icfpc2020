@@ -19,9 +19,11 @@ fn get_room(server_url: String) -> (String, String) {
 fn main() {
 	let args: Vec<String> = std::env::args().collect();
 	let server_url = args[1].clone();
+	let player1 = args[2].clone();
+	let player2 = if args.len() < 4 { player1.clone() } else { args[3].clone() };
 	let (a, d) = get_room(server_url.clone());
-	let mut player1 = std::process::Command::new(&args[2]).args(args[3..].iter().chain(&[server_url.clone(), a])).stdin(Stdio::piped()).stderr(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
-	let mut player2 = std::process::Command::new(&args[2]).args(args[3..].iter().chain(&[server_url.clone(), d])).stdin(Stdio::piped()).stderr(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
+	let mut player1 = std::process::Command::new(format!("target/release/{}", player1)).args(&[server_url.clone(), a]).stdin(Stdio::piped()).stderr(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
+	let mut player2 = std::process::Command::new(format!("target/release/{}", player2)).args(&[server_url.clone(), d]).stdin(Stdio::piped()).stderr(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
 	{
 		let player1_out = std::io::BufReader::new(player1.stdout.as_mut().unwrap());
 		let player2_out = std::io::BufReader::new(player2.stdout.as_mut().unwrap());
