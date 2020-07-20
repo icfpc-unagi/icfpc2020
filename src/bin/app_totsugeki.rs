@@ -1,5 +1,6 @@
 use app::client::*;
 
+/*
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const SIZE_OUTER: i32 = 128;
@@ -309,16 +310,8 @@ impl Router {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-impl From<&Ship> for PosVel {
-	fn from(s: &Ship) -> Self {
-		Self {
-			x: s.pos.0,
-			y: s.pos.1,
-			vx: s.v.0,
-			vy: s.v.1,
-		}
-	}
-}
+
+*/
 
 fn get_ship(resp: &Response, id: i32) -> &Ship {
 	for ship in &resp.state.ships {
@@ -333,9 +326,13 @@ fn get_next_pos(ship: &Ship) -> (i32, i32) {
 	(ship.pos.0 + ship.v.0, ship.pos.1 + ship.v.1)
 }
 
+
+
 fn run() {
+	use app::routing::PosVel;
+
 	println!("!!!TOTSUGEKI!!!!");
-	let mut router = Router::new();
+	let mut router = app::routing::Router::new();
 	/*
 	router.get_next_move(50, 50, 0, 0, -50, -50);
 	router.get_next_move(30, 30, 0, 0, -20, -20);
@@ -360,32 +357,13 @@ fn run() {
 	let en_id = 1 - my_id;  // TODO: 分裂したらやばい・・・・・・しらない・・・・・・
 
 	while resp.stage != 2 {
+		let mut commands = vec![];
+
+		// 移動！
 		let my_ship = get_ship(&resp, my_id);
 		let en_ship = get_ship(&resp, en_id);
-
-		println!(
-			"TICK = {}, DISTANCE {}, (({}, {}), ({}, {})) - (({}, {}), ({}, {}))",
-			resp.state.tick, (PosVel::from(my_ship).hypot_to(en_ship.pos.0, en_ship.pos.1) as f64).sqrt(),
-			my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1,
-			en_ship.pos.0, en_ship.pos.1, en_ship.v.0, en_ship.v.1,
-		);
-
-		// dbg!(my_ship);
-		// dbg!(en_ship);
-
-		let tx = clip_pos(en_ship.pos.0);
-		let ty = clip_pos(en_ship.pos.1);
-		let (_, n_steps) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tx, ty);
-
-		let mut tpv = PosVel::from(en_ship);
-		for _ in 0..n_steps {
-			tpv = tpv.apply_gravity().accelerate_and_move(0, 0);
-		}
-		// これはギリギリはみ出さないテストをするとき用
-		// let tpv = PosVel::new(127, 127, 0, 0);
-		
-		let ((dvx, dvy), _) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tpv.x, tpv.y);
-		let mut commands = vec![Command::Accelerate(my_id, (-dvx, -dvy))];
+		let (dvx, dvy) = router.doit(&my_ship, &en_ship);
+		commands.push(Command::Accelerate(my_id, (-dvx, -dvy)));
 
 		// 次ステップのポジで重なるなら爆発！
 		let myp = PosVel::from(my_ship).apply_gravity().accelerate_and_move(dvx, dvy);
@@ -395,7 +373,6 @@ fn run() {
 			commands.push(Command::Detonate(my_id, None));
 		}
 
-		// dbg!((dvx, dvy));
 		resp = client.command(&commands);
 	}
 }

@@ -8,3 +8,4 @@ pub mod recognize;
 pub mod client;
 pub mod chokudAI;
 pub mod wata;
+pub mod routing;

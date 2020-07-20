@@ -8,7 +8,6 @@ use app::parser::*;
 
 fn get_room(server_url: String) -> (String, String) {
 	let client = Client::new(server_url);
-	client.send("[1, 0]");
 	let e = get_list(&client.send("[1, 0]")).unwrap()[1].clone();
 	let e = get_list(&e).unwrap();
 	let a = get_list(&e[0]).unwrap();
