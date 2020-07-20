@@ -2,13 +2,14 @@ use crate::parser::*;
 use crate::*;
 use ::reqwest::blocking as reqwest;
 use itertools::*;
-use std::time::SystemTime;
-use std::env;
-use std::io::BufWriter;
-use std::fs::File;
-use std::io::Write;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::env;
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 use std::ops::Range;
+use std::time::SystemTime;
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -18,7 +19,11 @@ pub struct Response {
 }
 
 fn response_to_json(x: &Response) -> String {
-	format!("{{\"stage\":{},\"state\":{}}}", x.stage, state_to_json(&x.state))
+	format!(
+		"{{\"stage\":{},\"state\":{}}}",
+		x.stage,
+		state_to_json(&x.state)
+	)
 }
 
 #[derive(Debug, Clone)]
@@ -66,7 +71,10 @@ pub struct Ship {
 }
 
 fn ship_to_json(x: &Ship) -> String {
-	format!("{{\"role\":{},\"x\":{},\"y\":{}}}", x.role, x.pos.0, x.pos.1)
+	format!(
+		"{{\"role\":{},\"x\":{},\"y\":{}}}",
+		x.role, x.pos.0, x.pos.1
+	)
 }
 
 #[derive(Debug, Clone)]
@@ -157,7 +165,8 @@ pub struct Client {
 	server_url: String,
 	player_key: String,
 	file: Option<RefCell<BufWriter<File>>>,
-	client: reqwest::Client
+	client: reqwest::Client,
+	prev_ships: RefCell<BTreeMap<i32, Vec<E>>>,
 }
 
 impl Client {
@@ -171,7 +180,8 @@ impl Client {
 			server_url,
 			player_key: String::new(),
 			file: None,
-			client: reqwest::Client::new()
+			client: reqwest::Client::new(),
+			prev_ships: RefCell::default(),
 		}
 	}
 
@@ -183,11 +193,11 @@ impl Client {
 			Ok(t) => t.as_nanos(),
 			_ => 0,
 		};
-		let msg = format!(
-			"###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, msg);
+		let msg = format!("###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, msg);
 		let mut printed = false;
 		if let Some(f) = &self.file {
-			f.borrow_mut().write_all(msg.as_bytes())
+			f.borrow_mut()
+				.write_all(msg.as_bytes())
 				.expect("Failed to write to file");
 			printed = true;
 		}
@@ -217,24 +227,48 @@ impl Client {
 			.unwrap();
 		// eprintln!("resp: {}", resp);
 		let resp = modulation::demodulate(&resp);
-		eprintln!("resp: {}", &resp);
-		// if let Some(state) = &resp.into_iter().skip(3).next() {
-		// 	if let Some(ships) = state.into_iter().skip(2).next() {
-		// 		for ship in ships {
-		// 			for cmd in ship.into_iter().skip(1).next().unwrap() {
-		// 				eprintln!("applied cmd: {}", cmd);
-		// 			}
-		// 		}
-		// 	}
-		// }
+		// eprintln!("resp: {}", &resp);
+		let mut ships = Vec::new();
+		if let Some(state) = &resp.into_iter().skip(3).next() {
+			if let Some(ship_and_cmds) = state.into_iter().skip(2).next() {
+				for ship_and_cmd in ship_and_cmds {
+					eprintln!("ship: {}", &ship_and_cmd);
+					let ship_and_cmd: Vec<_> = ship_and_cmd.into_iter().collect();
+					let ship: Vec<_> = ship_and_cmd[0].into_iter().cloned().collect();
+					let cmds = ship_and_cmd[1];
+					let pos = get_pair(&ship[2]);
+					for cmd in cmds {
+						let e: Vec<_> = cmd.into_iter().collect();
+						match get_num(&e[0]) {
+							1 => {
+								println!("deton\t{}\t{}", get_num(&e[1]), get_num(&e[2]));
+							}
+							2 => {
+								let t = get_pair(&e[1]);
+								println!(
+									"shoot\t{}\t{}\t{}\t{}",
+									get_num(&e[3]),
+									get_num(&e[4]),
+									t.0 - pos.0,
+									t.1 - pos.1
+								);
+							}
+							_ => {}
+						}
+					}
+					ships.push(ship);
+				}
+			}
+		}
+		*self.prev_ships.borrow_mut() = ships;
 		resp
 	}
 	pub fn join(&mut self, player_key: &str) -> Response {
 		self.player_key = player_key.to_owned();
 		if let Err(_) = env::var("JUDGE_SERVER") {
-			self.file = Some(RefCell::new(BufWriter::new(File::create(
-				&format!("out/{}", self.player_key))
-				.expect("out directory is missing"))));
+			self.file = Some(RefCell::new(BufWriter::new(
+				File::create(&format!("out/{}", self.player_key)).expect("out directory is missing"),
+			)));
 		}
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
@@ -254,7 +288,7 @@ impl Client {
 		));
 		let resp = parse(resp);
 		self.gui("RESP", &response_to_json(&resp));
-		return resp
+		return resp;
 	}
 }
 
