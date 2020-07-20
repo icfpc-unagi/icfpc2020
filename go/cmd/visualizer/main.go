@@ -66,7 +66,7 @@ type Response struct {
 //}
 
 type State struct {
-	Tick int64 `json:"tick"`
+	Tick  int64  `json:"tick"`
 	Ships []Ship `json:"ships"`
 }
 
@@ -89,134 +89,202 @@ type State struct {
 
 type Ship struct {
 	Role int64 `json:"role"`
-	X int64 `json:"x"`
-	Y int64 `json:"y"`
+	X    int64 `json:"x"`
+	Y    int64 `json:"y"`
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `<html><head><script
-  src="https://code.jquery.com/jquery-3.5.1.min.js"
-  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
-  crossorigin="anonymous"></script><script>
-		var last_data = "";
-		var responses = [];
-		var scale = 1000;
+	fmt.Fprintf(w, `
+		<html>
+			<head>
+				<script
+					src="https://code.jquery.com/jquery-3.5.1.min.js"
+  				integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+					crossorigin="anonymous"></script>
+<script>
 
-		function update() {
-				$.get("output.txt", function(data){
-					if (last_data != data) {
-						last_data = data;
-						$("#commands").text(data);
-						responses = $.parseJSON(data);
-						var max_value = 0;
-						for (var i = 0; i < responses.length; i++) {
-							var ships = responses[i]["response"]["state"]["ships"];
-							for (var j = 0; j < ships.length; j++) {
-								max_value = Math.max(max_value, Math.abs(ships[j]["x"]), Math.abs(ships[j]["y"]));
-							}
-						}
-						scale = max_value * 2.5;
-						update_frame();
+var last_data = "";
+var responses = [];
 
-					}
-				});
+// 画面のサイズ
+var scale = 1000;
+
+$(function(){
+
+const canvas = document.getElementById('canvas');
+const c = canvas.getContext('2d');
+
+function init() {
+	update();
+	setInterval(function(){ update() }, 1000);
+}
+
+function update() {
+	$.get("output.txt", function(data){
+		if (last_data != data) {
+			last_data = data;
+			//$("#commands").text(data);
+			responses = $.parseJSON(data);
+
+			// スケールの計算
+			var max_value = 0;
+			for (var i = 0; i < responses.length; i++) {
+				var ships = responses[i]["response"]["state"]["ships"];
+				for (var j = 0; j < ships.length; j++) {
+					max_value = Math.max(max_value, Math.abs(ships[j]["x"]), Math.abs(ships[j]["y"]));
+				}
+			}
+
+			scale = max_value * 2.5;
+			update_frame();
 		}
-		$(function(){
-			update();
-			setInterval(function(){ update() }, 1000);
-		});
-
-
-	function line(x1, y1, x2, y2, color) {
-		const canvas = document.getElementById('canvas');
-		const c = canvas.getContext('2d');
-		c.strokeStyle = color;
-		c.beginPath();
-		c.moveTo(x1, y1);
-		c.lineTo(x2, y2);
-		c.stroke();
-	}
-	
-	function circle(x, y, r, color) {
-		const canvas = document.getElementById('canvas');
-		const c = canvas.getContext('2d');
-		c.beginPath () ;
-		c.arc(x, y, r, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
-		c.fillStyle = "rgba(255,0,0,0.8)";
-		c.fill();
-		c.strokeStyle = color;
-		c.lineWidth = 8;
-		c.stroke();
-	}
-
-function clear() {
-		const canvas = document.getElementById('canvas');
-		const c = canvas.getContext('2d');
-	c.clearRect(0, 0, canvas.width, canvas.height);
+	});
 }
 
-$(function() {
 $(window).keydown(function(e){
-console.log("keydown: " + e.keyCode);
+	console.log("keydown: " + e.keyCode);
+	var frame = $("#frame").text();
 
-var frame = $("#frame")[0].value;
+	// LEFT
+	if (e.keyCode == 37) {
+		$("#frame").text($("#frame").text() - 1);
+	}
+	// RIGHT
+	if (e.keyCode == 39) {
+		$("#frame").text($("#frame").text() - 0 + 1);
+	}
 
-// LEFT
-if (e.keyCode == 37) {
-	$("#frame")[0].value = $("#frame")[0].value - 1;
-}
+	if ($("#frame").text() - 0 < 0) {
+		$("#frame").text("0");
+	}
+	if ($("#frame").text() - 0 >= responses.length) {
+		$("#frame").text(responses.length - 1);
+	}
 
-// RIGHT
-if (e.keyCode == 39) {
-	$("#frame")[0].value = $("#frame")[0].value - 0 + 1;
-}
-
-if ($("#frame")[0].value - 0 < 0) {
-	$("#frame")[0].value = "0";
-}
-
-if ($("#frame")[0].value - 0 >= responses.length) {
-	$("#frame")[0].value = responses.length - 1;
-}
-
-$("#frame").text(frame);
-
-update_frame();
-
-});
+	update_frame();
 });
 
 function update_frame() {
-	var frame = $("#frame")[0].value - 0;
-	draw(responses[frame]);
+	var frame = $("#frame").text() - 0;
+	var response = responses[frame]["response"];
+	$("#command").text(JSON.stringify(response, null, "  "));
+	draw(response);
 }
 
+function to_canvas_x(x) {
+	return x / scale * canvas.width + canvas.width / 2;
+}
+
+function to_canvas_y(y) {
+	return y / scale * canvas.height + canvas.height / 2;
+}
 
 function draw(response) {
 	clear();
 
-	var ships = response["response"]["state"]["ships"];
+	var ships = response["state"]["ships"];
 	const canvas = document.getElementById('canvas');
 
 	for (var i = 0; i < ships.length; i++) {
-	var ship = ships[i];
-		var color = "orange";
+		var ship = ships[i];
+		color = "#ff8800";
 		if (ship["role"] == 1) {
-			color = "blue";
+			color = "#0088ff";
 		}
 		circle(
 			ship["x"] / scale * canvas.width + canvas.width / 2,
 			ship["y"] / scale * canvas.height + canvas.height / 2,
 			10, color);
 	}
+
+	for (var i = 0; i < ships.length; i++) {
+		var ship = ships[i];
+		color = "#ff8800";
+		if (ship["role"] == 1) {
+			color = "#0088ff";
+		}
+		var commands = ship["commands"];
+		for (var j = 0; j < commands.length; j++) {
+			var command = commands[j];
+			if (command["type"] == "shoot") {
+				circle(
+					to_canvas_x(ship["x"]),
+					to_canvas_y(ship["y"]),
+					5, "red");
+				line(
+					to_canvas_x(ship["x"]),
+					to_canvas_y(ship["y"]),
+					to_canvas_x(command["x"]),
+					to_canvas_y(command["y"]),
+					color,
+				);
+			}
+		}
+	}
+
+	// 太陽
+	c.beginPath();
+	c.rect(
+		 canvas.width / 2 - 8 / scale * canvas.width,
+		 canvas.height / 2 - 8 / scale * canvas.height,
+		 16 / scale * canvas.width,
+		 16 / scale * canvas.height,
+	);
+	c.fillStyle = "#ffeeaa";
+	c.strokeStyle = c.fillStyle;
+	c.lineWidth = 1;
+	c.fill();
+	c.stroke();
 }
 
-	</script></head><body>
-	Frame: <input type="text" id="frame" value="0"><br>
+function line(x1, y1, x2, y2, color) {
+	c.strokeStyle = color;
+	c.lineWidth = 3;
+	c.beginPath();
+	c.moveTo(x1, y1);
+	c.lineTo(x2, y2);
+	c.stroke();
+}
+
+function circle(x, y, r, color) {
+	c.beginPath();
+	c.arc(x, y, r, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
+	c.fillStyle = color;
+	c.fill();
+	c.strokeStyle = color;
+	c.lineWidth = 1;
+	c.stroke();
+}
+
+function rect() {
+	//c.clearRect(0, 0, canvas.width, canvas.height);
+	c.beginPath();
+	c.fillStyle = "#000022";
+	c.rect(0, 0, canvas.width, canvas.height);
+	c.fill();
+	c.stroke();
+}
+
+function clear() {
+	c.beginPath();
+	//c.clearRect(0, 0, canvas.width, canvas.height);
+	c.fillStyle = "#000022";
+	c.rect(0, 0, canvas.width, canvas.height);
+	c.fill();
+	c.stroke();
+}
+
+init();
+
+});
+
+</script></head><body style="background: #000; color: #fff">
+<div style="margin: auto auto; text-align: center;">
+	<div>Frame: <span id="frame">0</span></div>
 	<canvas id="canvas" width="500" height="500" style="border:1px solid #888"></canvas>
-  <textarea id="commands"></textarea>`)
+</div>
+<pre id="command" style="font-family: 'Andale Mono', monospace"></pre>`)
 }
-
 
 func main() {
 	flag.Parse()
