@@ -52,7 +52,13 @@ pub fn test_naive(mut x: i32, mut y: i32, mut dx: i32, mut dy: i32, gx: &Vec<Vec
 	256
 }
 
-fn preprocess() -> Vec<Vec<Vec<Vec<i32>>>> {
+struct Preprocess {
+	gx: Vec<Vec<i32>>,
+	gy: Vec<Vec<i32>>,
+	dp: Vec<Vec<Vec<Vec<i32>>>>
+}
+
+fn preprocess() -> Preprocess {
 	let stime = get_time();
 	let n = (W as usize * 2) + 1;
 	let m = 21;
@@ -152,10 +158,38 @@ fn preprocess() -> Vec<Vec<Vec<Vec<i32>>>> {
 	}
 	eprintln!("preprocessed: {}", count);
 	eprintln!("time: {:.3}", get_time() - stime);
-	dp
+	Preprocess { gx, gy, dp }
 }
 
-fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, dp: &Vec<Vec<Vec<Vec<i32>>>>) -> (i32, i32) {
+fn rec(x: i32, y: i32, dx: i32, dy: i32, last_ax: i32, last_ay: i32, d: usize, prep: &Preprocess) -> (i32, usize) {
+	if check_range(x, y) || check_v(dx, dy) {
+		return (0, 0);
+	}
+	let i = (x + W) as usize;
+	let j = (y + W) as usize;
+	let di = (dx + 10) as usize;
+	let dj = (dy + 10) as usize;
+	let mut best = (prep.dp[i][j][di][dj], d);
+	if d == 0 {
+		return best;
+	}
+	for ax in -2..=2 {
+		if last_ax * ax < 0 {
+			continue;
+		}
+		for ay in -2..=2 {
+			if last_ay * ay < 0 {
+				continue;
+			}
+			let dx = dx + ax + prep.gx[i][j];
+			let dy = dy + ay + prep.gy[i][j];
+			best.setmax(rec(x + dx, y + dy, dx, dy, ax, ay, d - 1, prep));
+		}
+	}
+	best
+}
+
+fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, prep: &Preprocess) -> (i32, i32) {
 	if !check_range(x, y) && tick > 20 {
 		let i = (x + W) as usize;
 		let j = (y + W) as usize;
@@ -174,7 +208,7 @@ fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, dp: &Vec<
 				}
 				let di = (dx + 10) as usize;
 				let dj = (dy + 10) as usize;
-				if best.setmax(dp[i][j][di][dj]) {
+				if best.setmax(prep.dp[i][j][di][dj]) {
 					best_x = ax;
 					best_y = ay;
 				}
@@ -185,59 +219,82 @@ fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, dp: &Vec<
 			return (best_x, best_y);
 		}
 	}
-	let mut addy = 0;
-	let mut addx = 0;
-
-	if x.abs() < 30 && y.abs() < 30 {
-		if x < 0 { addx = -1; }
-		else {addx = 1;}
-		if y < 0 { addy = -1; }
-		else {addy = 1;}
-	}
-	else
-	{
-
-		if x >= 0 && x.abs() >= y.abs() {
-			if dy < 7 {
-				addy = 1;
-				if dx < 0 {addx = 1;}
-			}
-		}
-		if x <= 0 && x.abs() >= y.abs() {
-			if dy > -7 { 
-				addy = -1;
-				if dx > 0 {addx = -1;}
-			}
-		}
-
-		if y >= 0 && y.abs() >= x.abs() {
-			if dx > -7 {
-				addx = -1;
-				if dy < 0 {addy = 1;}
-			}
-		}
-		if y <= 0 && y.abs() >= x.abs() {
-			if dx < 7 { 
-				addx = 1;
-				if dy > 0 {addy = -1;}
-			}
-		}
-	}
-
-	if x.abs() > 100{
-		if x < 0 { addx = 1; }
-		else {addx = -1;}
-	}
+	if check_range(x, y) {
+		let mut addy = 0;
+		let mut addx = 0;
 	
-	if y.abs() > 100{
-		if y < 0 { addy = 1; }
-		else {addy = -1;}
+		if x.abs() < 30 && y.abs() < 30 {
+			if x < 0 { addx = -1; }
+			else {addx = 1;}
+			if y < 0 { addy = -1; }
+			else {addy = 1;}
+		}
+		else
+		{
+	
+			if x >= 0 && x.abs() >= y.abs() {
+				if dy < 7 {
+					addy = 1;
+					if dx < 0 {addx = 1;}
+				}
+			}
+			if x <= 0 && x.abs() >= y.abs() {
+				if dy > -7 { 
+					addy = -1;
+					if dx > 0 {addx = -1;}
+				}
+			}
+	
+			if y >= 0 && y.abs() >= x.abs() {
+				if dx > -7 {
+					addx = -1;
+					if dy < 0 {addy = 1;}
+				}
+			}
+			if y <= 0 && y.abs() >= x.abs() {
+				if dx < 7 { 
+					addx = 1;
+					if dy > 0 {addy = -1;}
+				}
+			}
+		}
+	
+		if x.abs() > 100{
+			if x < 0 { addx = 1; }
+			else {addx = -1;}
+		}
+		
+		if y.abs() > 100{
+			if y < 0 { addy = 1; }
+			else {addy = -1;}
+		}
+		(addx, addy)
+	} else {
+		let i = (x + W) as usize;
+		let j = (y + W) as usize;
+		let mut best = (0, 0);
+		let mut best_x = 0;
+		let mut best_y = 0;
+		for ax in -2..=2 {
+			for ay in -2..=2 {
+				if force && ax == 0 && ay == 0 {
+					continue;
+				}
+				let dx = dx + ax + prep.gx[i][j];
+				let dy = dy + ay + prep.gy[i][j];
+				if best.setmax(rec(x + dx, y + dy, dx, dy, ax, ay, 5, prep)) {
+					best_x = ax;
+					best_y = ay;
+				}
+			}
+		}
+		dbg!(best);
+		(best_x, best_y)
 	}
-	(addx, addy)
 }
 
 fn run() {
-	let dp = preprocess();
+	let prep = preprocess();
 	let server_url = std::env::args().nth(1).unwrap();
 	let mut client = Client::new(server_url);
 	let player_key = std::env::args().nth(2).unwrap();
@@ -258,6 +315,7 @@ fn run() {
 	}
 	dbg!(&resp);
 	while resp.stage != 2 {
+		let stime = get_time();
 		let mut ship = resp.state.ships[0].clone();
 		let mut size = 0;
 		for s in &resp.state.ships {
@@ -277,17 +335,18 @@ fn run() {
 			let j = (ship.pos.1 + W) as usize;
 			let di = (ship.v.0 + 10) as usize;
 			let dj = (ship.v.1 + 10) as usize;
-			if dp[i][j][di][dj] + resp.state.tick > resp.info.deadline {
-				commands.push(Command::Split(ship.id, Params { energy: 1, power: 0, cool: 0, life: 1 }));
+			if prep.dp[i][j][di][dj] + resp.state.tick > resp.info.deadline {
+				commands.push(Command::Split(ship.id, Params { energy: 0, power: 0, cool: 0, life: 1 }));
 				eprintln!("split!!!!!!!!!!!!!!!!!!!");
 			}
 		}
 		if commands.len() == 0 {
-			let (dx, dy) = next_move(ship.pos.0, ship.pos.1, ship.v.0, ship.v.1, count > 1, resp.state.tick, &dp);
+			let (dx, dy) = next_move(ship.pos.0, ship.pos.1, ship.v.0, ship.v.1, count > 1, resp.state.tick, &prep);
 			if dx != 0 || dy != 0 {
 				commands.push(Command::Accelerate(ship.id, (-dx, -dy)));
 			}
 		}
+		eprintln!("time = {:.3}", get_time() - stime);
 		resp = client.command(&commands);
 		dbg!(&resp);
 	}
@@ -303,6 +362,7 @@ mod chokudai {
 	}
 	
 	pub fn run(client: Client, join_resp: Response){
+		
 		//START
 		//set firstなんとか
 		
@@ -324,7 +384,7 @@ mod chokudai {
 		//COMMANDS
 		while resp.stage != 2 {
 	
-			resp = client.command(&chokud_ai(&resp, &id, &my_role, &e_data));
+			resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data));
 			//dbg!(&resp);
 		}
 	
@@ -332,17 +392,47 @@ mod chokudai {
 	
 	}
 	
-	fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &EnemyData) -> Vec<Command> {
+	fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -> Vec<Command> {
 		
 		let mut myship = resp.state.ships[0].clone();
 		let mut enemyship = resp.state.ships[0].clone();
+	
+		let mut px = 0;
+		let mut py = 0;
 	
 		for i in 0..resp.state.ships.len() {
 			let nowship = resp.state.ships[i].clone();
 			if nowship.role == *my_role {myship = nowship; }
 			else {
 				enemyship = nowship;
-				
+				for c in enemyship.commands.iter(){
+					if let Command::Accelerate(_, v) = c {
+						px = -v.0;
+						py = -v.1;
+						let ppx = 2 + px;
+						let ppy = 2 + py;
+	
+						if enemyship.pos.0.abs() >= enemyship.pos.1.abs() {
+							if enemyship.pos.0 >= 0 {
+								e_data.pattern[ppx as usize][ppy as usize] += 1;
+							}
+							
+							if enemyship.pos.0 <= 0 {
+								e_data.pattern[(4 - ppx) as usize][(4 - ppy) as usize] += 1;
+							}
+						}
+	
+						if enemyship.pos.1.abs() >= enemyship.pos.0.abs() {
+							if enemyship.pos.1 >= 0 {
+								e_data.pattern[ppy as usize][(4 - ppx) as usize] += 1;
+							}
+							
+							if enemyship.pos.1 <= 0 {
+								e_data.pattern[(4 - ppy) as usize][ppx as usize] += 1;
+							}
+						}
+					}
+				}
 			}
 		}
 	
@@ -366,20 +456,47 @@ mod chokudai {
 				next_enemy[0] += 1;
 			}
 		}
+		
+		//next_enemy[0] += px;
+		//next_enemy[1] += py;	
 	
-		let mut enemyMoveX = 0;
-		let mut enemyMoveY = 0;
-		let mut enemyCnt = 0;
+		let mut enemy_move_x = 0 as i32;
+		let mut enemy_move_y = 0 as i32;
+		let mut enemyCnt = 0 as i32;
+	
 		for x in 0..5 {
 			for y in 0..5 {
 				if e_data.pattern[x][y] > enemyCnt {
 					enemyCnt = e_data.pattern[x][y];
-					enemyMoveX = x - 2;
-					enemyMoveY = y - 2;
+					enemy_move_x = x as i32 - 2;
+					enemy_move_y = y as i32 - 2;
 				}
 			}
 		}
+	
+		if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
+			if enemyship.pos.1 >= 0 {
+				enemy_move_x = px;
+				enemy_move_y = py;
+			}
+			else{
+				enemy_move_x = -px;
+				enemy_move_y = -py;
+			}
+		}
+		else {
+			if enemyship.pos.0 >= 0 {
+				enemy_move_x = py;
+				enemy_move_y = -px;
+			}
+			else{
+				enemy_move_x = -py;
+				enemy_move_y = px;
+			}
+		}
 		
+		next_enemy[0] += enemy_move_x;
+		next_enemy[1] += enemy_move_y;
 	
 		let mut addy = 0;
 		let mut addx = 0;
@@ -485,6 +602,7 @@ mod chokudai {
 		}
 		return ret;
 	}
+	
 }
 
 fn main() {

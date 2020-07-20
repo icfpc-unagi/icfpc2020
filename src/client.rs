@@ -70,7 +70,11 @@ impl std::fmt::Display for Command {
 			Command::Accelerate(id, v) => write!(f, "[0, {}, <{}, {}>]", id, v.0, v.1)?,
 			Command::Detonate(id) => write!(f, "[1, {}]", id)?,
 			Command::Shoot(id, t, x3) => write!(f, "[2, {}, <{}, {}>, {}]", id, t.0, t.1, x3)?,
-			Command::Split(id, params) => write!(f, "[3, {}, [{}, {}, {}, {}]]", id, params.energy, params.power, params.cool, params.life)?,
+			Command::Split(id, params) => write!(
+				f,
+				"[3, {}, [{}, {}, {}, {}]]",
+				id, params.energy, params.power, params.cool, params.life
+			)?,
 			_ => {
 				panic!("unreachable");
 			}
@@ -87,9 +91,21 @@ impl From<&E> for Command {
 			1 => Command::Detonate(-1),
 			2 => Command::Shoot(-1, get_pair(&e[1]), get_num(&e[2])),
 			3 => {
-				let params = get_list(&e[1]).unwrap().into_iter().map(|e| get_num(&e)).collect::<Vec<_>>();
-				Command::Split(-1, Params { energy: params[0], power: params[1], cool: params[2], life: params[3] })
-			},
+				let params = get_list(&e[1])
+					.unwrap()
+					.into_iter()
+					.map(|e| get_num(&e))
+					.collect::<Vec<_>>();
+				Command::Split(
+					-1,
+					Params {
+						energy: params[0],
+						power: params[1],
+						cool: params[2],
+						life: params[3],
+					},
+				)
+			}
 			_ => Command::Unknown,
 		}
 	}
@@ -219,13 +235,14 @@ pub fn parse(e: E) -> Response {
 		}
 	};
 	let state = get_list(&a[3]).unwrap();
-	let (tick, x1, ships) = if state.len() > 0 { // unused x1 ??
+	let (tick, strange, ships) = if state.len() > 0 {
 		let tick = get_num(&state[0]);
-		let range = get_list(&state[1])
+		let strange = get_list(&state[1])
 			.unwrap()
 			.into_iter()
 			.map(|e| get_num(&e))
 			.collect();
+		let strange = strange[0]..strange[1];
 		let ships = get_list(&state[2])
 			.unwrap()
 			.into_iter()
@@ -285,9 +302,9 @@ pub fn parse(e: E) -> Response {
 				}
 			})
 			.collect();
-		(tick, range, ships)
+		(tick, strange, ships)
 	} else {
-		(0, vec![], vec![])
+		(0, .., vec![])
 	};
 	Response {
 		stage,
@@ -295,9 +312,13 @@ pub fn parse(e: E) -> Response {
 			deadline,
 			role,
 			ability,
-			range: range.clone(),
+			range,
 			opponent_params,
 		},
-		state: State { tick, range, ships },
+		state: State {
+			tick,
+			range: strange,
+			ships,
+		},
 	}
 }
