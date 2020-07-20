@@ -132,8 +132,8 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 		}
 	}
 
-	if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
-		if enemyship.pos.1 >= 0 {
+	if enemyship.pos.0.abs() >= enemyship.pos.1.abs(){
+		if enemyship.pos.0 >= 0 {
 			enemy_move_x = px;
 			enemy_move_y = py;
 		}
@@ -143,7 +143,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 		}
 	}
 	else {
-		if enemyship.pos.0 >= 0 {
+		if enemyship.pos.1 >= 0 {
 			enemy_move_x = py;
 			enemy_move_y = -px;
 		}
