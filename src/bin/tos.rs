@@ -1,6 +1,7 @@
 use app::client::*;
 // use std;
 use std::convert::*;
+// use rand::prelude::*;
 
 fn run() {
 	let server_url = std::env::args().nth(1).unwrap();
@@ -11,13 +12,15 @@ fn run() {
 	}
 	let player_key = std::env::args().nth(2).unwrap();
 	let mut resp = client.join(&player_key);
-	let power = 64;
+	let power = 32;
 	let cool = 8;
 	let life = 1;
 	resp = client.start(resp.info.ability.potential - power * 4 - cool * 12 - life * 2, power, cool, life);
 
-	let mut dx: i32 = std::env::var("DX").unwrap().parse().unwrap();
-	let dy: i32 = std::env::var("DY").unwrap().parse().unwrap();
+	// let mut dx: i32 = std::env::var("DX").unwrap().parse().unwrap();
+	// let dy: i32 = std::env::var("DY").unwrap().parse().unwrap();
+	let mut dx = 0;
+	let mut dy = 0;
 	while resp.stage != 2 {
 		let mut myship = None;
 		for ship in resp.state.ships.iter() {
@@ -33,11 +36,11 @@ fn run() {
 		{
 			// anti gravity
 			let (x, y) = myship.pos;
-			println!("{}, {}", x, y);
-			assert_eq!(myship.v, (0, 0));
+			// println!("{}, {}", x, y);
+			// assert_eq!(myship.v, (0, 0));
 			// println!("{:?}", myship.v);
 			let (gx, gy) = gravity(x, y);
-			println!("{}, {}", gx, gy);
+			// println!("{}, {}", gx, gy);
 			commands.push(
 				Command::Accelerate(myship.id, gravity(x, y))
 			);
