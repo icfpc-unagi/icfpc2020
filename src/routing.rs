@@ -4,7 +4,7 @@ use super::client::*;
 
 const SIZE_OUTER: i32 = 128;
 const SIZE_INNER: i32 = 16;
-const MAX_V: i32 = 16;
+const MAX_V: i32 = 12;
 const STEP_LIMIT: i32 = 5;
 
 fn clip_int(x: i32, limit: i32) -> i32 {
