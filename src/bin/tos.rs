@@ -29,18 +29,21 @@ fn run() {
 		let myship = myship.unwrap();
 
 		let mut commands = vec![];
+
 		{
 			// anti gravity
 			let (x, y) = myship.pos;
 			println!("{}, {}", x, y);
-			// assert_eq!(myship.v, (0, 0));
-			println!("{:?}", myship.v);
+			assert_eq!(myship.v, (0, 0));
+			// println!("{:?}", myship.v);
 			let (gx, gy) = gravity(x, y);
 			println!("{}, {}", gx, gy);
-			Command::Accelerate(myship.id, (-gx, -gy));
+			commands.push(
+				Command::Accelerate(myship.id, gravity(x, y))
+			);
 		}
 		
-		let shoot_now = myship.heat -myship.status.cool <= myship.max_heat;
+		let shoot_now = myship.heat -myship.status.cool + 16 <= myship.max_heat;
 		if shoot_now {
 			commands.push(Command::Shoot(1, (myship.pos.0 + dx, myship.pos.1 + dy), 64, None));
 			dx+=1;
@@ -52,7 +55,7 @@ fn run() {
 
 		if shoot_now {
 			// println!("{}", resp);
-			println!("shoot!!!!!!!");
+			println!("S H O O O O O O O T ! ! ! ! ! ! !");
 			for ship in resp.state.ships.iter() {
 				for cmd in ship.commands.iter() {
 					match cmd {
