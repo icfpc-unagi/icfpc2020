@@ -2,6 +2,12 @@ use crate::parser::*;
 use crate::*;
 use ::reqwest::blocking as reqwest;
 use itertools::*;
+use std::time::SystemTime;
+use std::env;
+use std::io::BufWriter;
+use std::fs::File;
+use std::io::Write;
+use std::cell::RefCell;
 use std::ops::Range;
 
 #[derive(Debug, Clone)]
@@ -9,6 +15,10 @@ pub struct Response {
 	pub stage: i32,
 	pub info: Info,
 	pub state: State,
+}
+
+fn response_to_json(x: &Response) -> String {
+	format!("{{\"stage\":{},\"state\":{}}}", x.stage, state_to_json(&x.state))
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +44,14 @@ pub struct State {
 	pub ships: Vec<Ship>,
 }
 
+fn state_to_json(x: &State) -> String {
+	let mut ships = Vec::new();
+	for s in &x.ships {
+		ships.push(ship_to_json(&s));
+	}
+	format!("{{\"ships\":[{}]}}", ships.connect(","))
+}
+
 #[derive(Debug, Clone)]
 pub struct Ship {
 	pub role: i32,
@@ -45,6 +63,10 @@ pub struct Ship {
 	pub max_heat: i32,
 	pub max_accelarate: i32,
 	pub commands: Vec<Command>,
+}
+
+fn ship_to_json(x: &Ship) -> String {
+	format!("{{\"role\":{},\"x\":{},\"y\":{}}}", x.role, x.pos.0, x.pos.1)
 }
 
 #[derive(Debug, Clone)]
@@ -134,7 +156,8 @@ impl From<&E> for Command {
 pub struct Client {
 	server_url: String,
 	player_key: String,
-	client: reqwest::Client,
+	file: Option<RefCell<BufWriter<File>>>,
+	client: reqwest::Client
 }
 
 impl Client {
@@ -147,9 +170,34 @@ impl Client {
 		Self {
 			server_url,
 			player_key: String::new(),
-			client: reqwest::Client::new(),
+			file: None,
+			client: reqwest::Client::new()
 		}
 	}
+
+	pub fn gui(&self, name: &str, msg: &str) {
+		if let Ok(_) = env::var("JUDGE_SERVER") {
+			return;
+		}
+		let t = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+			Ok(t) => t.as_nanos(),
+			_ => 0,
+		};
+		let msg = format!(
+			"###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, msg);
+		let mut printed = false;
+		if let Some(f) = &self.file {
+			f.borrow_mut().write_all(msg.as_bytes())
+				.expect("Failed to write to file");
+			printed = true;
+		}
+		if let Ok(_) = env::var("GUI") {
+			print!("{}", &msg);
+		} else if !printed {
+			print!("{}", &msg);
+		}
+	}
+
 	pub fn send(&self, msg: &str) -> E {
 		eprintln!("send: {}", msg);
 		let msg = to_text(&parse_lisp(msg).0);
@@ -183,6 +231,11 @@ impl Client {
 	}
 	pub fn join(&mut self, player_key: &str) -> Response {
 		self.player_key = player_key.to_owned();
+		if let Err(_) = env::var("JUDGE_SERVER") {
+			self.file = Some(RefCell::new(BufWriter::new(File::create(
+				&format!("out/{}", self.player_key))
+				.expect("out directory is missing"))));
+		}
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
 	}
@@ -199,7 +252,9 @@ impl Client {
 			self.player_key,
 			cs.iter().join(", ")
 		));
-		parse(resp)
+		let resp = parse(resp);
+		self.gui("RESP", &response_to_json(&resp));
+		return resp
 	}
 }
 
