@@ -112,8 +112,11 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 		}
 	}	
 
-	next_enemy[0] += enemy_move_x;
-	next_enemy[1] += enemy_move_y;
+	next_enemy[0] += px;
+	next_enemy[1] += py;
+
+	//next_enemy[0] += enemy_move_x;
+	//next_enemy[1] += enemy_move_y;
 
 	let mut addy = 0;
 	let mut addx = 0;
