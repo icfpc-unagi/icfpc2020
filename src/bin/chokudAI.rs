@@ -143,12 +143,12 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	}
 	else {
 		if enemyship.pos.1 >= 0 {
-			enemy_move_x = enemy_move_y;
-			enemy_move_y = -enemy_move_x;
-		}
-		else{
 			enemy_move_x = -enemy_move_y;
 			enemy_move_y = enemy_move_x;
+		}
+		else{
+			enemy_move_x = enemy_move_y;
+			enemy_move_y = -enemy_move_x;
 		}
 	}
 	
