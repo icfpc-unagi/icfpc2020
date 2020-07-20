@@ -107,7 +107,7 @@ var last_data = "";
 var responses = [];
 
 // 画面のサイズ
-var scale = 1000;
+var scale = 256;
 
 $(function(){
 
@@ -116,7 +116,7 @@ const c = canvas.getContext('2d');
 
 function init() {
 	update();
-	setInterval(function(){ update() }, 1000);
+	//setInterval(function(){ update() }, 1000);
 }
 
 function update() {
@@ -135,7 +135,7 @@ function update() {
 				}
 			}
 
-			scale = max_value * 2.5;
+			//scale = max_value * 2.5;
 			update_frame();
 		}
 	});
@@ -166,6 +166,7 @@ $(window).keydown(function(e){
 
 function update_frame() {
 	var frame = $("#frame").text() - 0;
+	var r = responses[frame];
 	var response = responses[frame]["response"];
 	$("#command").text(JSON.stringify(response, null, "  "));
 	draw(response);
@@ -225,10 +226,10 @@ function draw(response) {
 	// 太陽
 	c.beginPath();
 	c.rect(
-		 canvas.width / 2 - 8 / scale * canvas.width,
-		 canvas.height / 2 - 8 / scale * canvas.height,
-		 16 / scale * canvas.width,
-		 16 / scale * canvas.height,
+		 canvas.width / 2 - 16 / scale * canvas.width,
+		 canvas.height / 2 - 16 / scale * canvas.height,
+		 32 / scale * canvas.width,
+		 32 / scale * canvas.height,
 	);
 	c.fillStyle = "#ffeeaa";
 	c.strokeStyle = c.fillStyle;
