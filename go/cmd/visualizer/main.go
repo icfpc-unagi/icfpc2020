@@ -3,15 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -32,25 +29,69 @@ type Game struct {
 	output chan string
 }
 
-type JsonObject struct {
-	Array []JsonObject
-	Int		int64
-	String string
-	Unknown interface{}
-}
-
-func (j *JsonObject) ToList() []int64 {
-	xs := []int64{}
-	for _, x := range j.Array {
-		xs = append(xs, x.Int)
-	}
-	return xs
-}
-
 var game Game
 var output = make(chan string, 10)
 var outputPool = make([]string, 0)
 var m sync.RWMutex
+
+//#[derive(Debug, Clone)]
+//pub struct Response {
+//pub stage: i32,
+//pub info: Info,
+//pub state: State,
+//}
+//
+//fn response_to_json(x: &Response) -> String {
+//format!("{{\"stage\":{},\"state\":{}}}", x.stage, state_to_json(&x.state))
+//}
+
+type Response struct {
+	Stage int64 `json:"stage"`
+	State State `json:"state"`
+}
+
+//#[derive(Debug, Clone)]
+//pub struct State {
+//pub tick: i32,
+//pub range: Range<i32>, // 侵入可能エリアの x,y の絶対値の範囲
+//pub ships: Vec<Ship>,
+//}
+//
+//fn state_to_json(x: &State) -> String {
+//let mut ships = Vec::new();
+//for s in &x.ships {
+//ships.push(ship_to_json(&s));
+//}
+//format!("{{\"ships\":[{}]}}", ships.connect(","))
+//}
+
+type State struct {
+	Tick int64 `json:"tick"`
+	Ships []Ship `json:"ships"`
+}
+
+//#[derive(Debug, Clone)]
+//pub struct Ship {
+//pub role: i32,
+//pub id: i32,
+//pub pos: (i32, i32),
+//pub v: (i32, i32),
+//pub status: Params,
+//pub heat: i32,
+//pub max_heat: i32,
+//pub max_accelarate: i32,
+//pub commands: Vec<Command>,
+//}
+//
+//fn ship_to_json(x: &Ship) -> String {
+//format!("{{\"role\":{},\"x\":{},\"y\":{}}}", x.role, x.pos.0, x.pos.1)
+//}
+
+type Ship struct {
+	Role int64 `json:"role"`
+	X int64 `json:"x"`
+	Y int64 `json:"y"`
+}
 
 func handle(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<html><head><script
@@ -58,11 +99,23 @@ func handle(w http.ResponseWriter, r *http.Request) {
   integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
   crossorigin="anonymous"></script><script>
 		var last_data = "";
+		var responses = [];
+		var scale = 1000;
+
 		function update() {
 				$.get("output.txt", function(data){
 					if (last_data != data) {
 						last_data = data;
 						$("#commands").text(data);
+						responses = $.parseJSON(data);
+						var max_value = 0;
+						for (var i = 0; i < responses.length; i++) {
+							var ships = responses[i]["response"]["state"]["ships"];
+							for (var j = 0; j < ships.length; j++) {
+								max_value = Math.max(max_value, Math.abs(ships[j]["x"]), Math.abs(ships[j]["y"]));
+							}
+						}
+						scale = max_value * 2.5;
 					}
 				});
 		}
@@ -70,132 +123,97 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			update();
 			setInterval(function(){ update() }, 1000);
 		});
+
+
+	function line(x1, y1, x2, y2, color) {
+		const canvas = document.getElementById('canvas');
+		const c = canvas.getContext('2d');
+		c.strokeStyle = color;
+		c.beginPath();
+		c.moveTo(x1, y1);
+		c.lineTo(x2, y2);
+		c.stroke();
+	}
+	
+	function circle(x, y, r, color) {
+		const canvas = document.getElementById('canvas');
+		const c = canvas.getContext('2d');
+		c.beginPath () ;
+		c.arc(x, y, r, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
+		c.fillStyle = "rgba(255,0,0,0.8)";
+		c.fill();
+		c.strokeStyle = color;
+		c.lineWidth = 8;
+		c.stroke();
+	}
+
+function clear() {
+		const canvas = document.getElementById('canvas');
+		const c = canvas.getContext('2d');
+	c.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+$(function() {
+$(window).keydown(function(e){
+console.log("keydown: " + e.keyCode);
+
+var frame = $("#frame")[0].value;
+
+// LEFT
+if (e.keyCode == 37) {
+	$("#frame")[0].value = $("#frame")[0].value - 1;
+}
+
+// RIGHT
+if (e.keyCode == 39) {
+	$("#frame")[0].value = $("#frame")[0].value - 0 + 1;
+}
+
+if ($("#frame")[0].value - 0 < 0) {
+	$("#frame")[0].value = "0";
+}
+
+if ($("#frame")[0].value - 0 >= responses.length) {
+	$("#frame")[0].value = responses.length - 1;
+}
+
+$("#frame").text(frame);
+
+
+var frame = $("#frame")[0].value - 0;
+
+console.log(responses[frame]);
+
+draw(responses[frame]);
+
+});
+});
+
+function draw(response) {
+	clear();
+
+	var ships = response["response"]["state"]["ships"];
+	const canvas = document.getElementById('canvas');
+
+	for (var i = 0; i < ships.length; i++) {
+	var ship = ships[i];
+		var color = "orange";
+		if (ship["role"] == 1) {
+			color = "blue";
+		}
+		circle(
+			ship["x"] / scale * canvas.width + canvas.width / 2,
+			ship["y"] / scale * canvas.height + canvas.height / 2,
+			10, color);
+	}
+}
+
 	</script></head><body>
+	Frame: <input type="text" id="frame" value="0"><br>
+	<canvas id="canvas" width="500" height="500" style="border:1px solid #888"></canvas>
   <textarea id="commands"></textarea>`)
 }
 
-
-type X2 struct {
-	TotalCost int64 `json:"total_cost"`
-	MaxAccel int64 `json:"max_accel"`
-	MaxTemp int64 `json:"max_temp"`
-}
-
-func ParseX2(obj JsonObject) (X2, error) {
-	r := X2{}
-	if len(obj.Array) != 3 {
-		return r, fmt.Errorf("invalid x2: %d", len(obj.Array))
-	}
-	r.TotalCost = obj.Array[0].Int
-	r.MaxAccel = obj.Array[1].Int
-	r.MaxTemp = obj.Array[2].Int
-	return r, nil
-}
-
-type X3 struct {
-	RangeMin int64 `json:"range_min"`
-	RangeMax int64 `json:"range_max"`
-}
-
-func ParseX3(obj JsonObject) (X3, error) {
-	r := X3{}
-	if len(obj.Array) != 2 {
-		return r, fmt.Errorf("invalid x3: %d", len(obj.Array))
-	}
-	r.RangeMin = obj.Array[0].Int
-	r.RangeMax = obj.Array[1].Int
-	return r, nil
-}
-
-type X4 struct {
-	Used bool `json:"used"`
-	X0 int64 `json:"x0"`
-	X1 X3 `json:"x1"`
-	X2 X2 `json:"x2"`
-	X3 X3 `json:"x3"`
-}
-
-func ParseX4(obj JsonObject) (X4, error) {
-	r := X4{}
-	if len(obj.Array) == 0 {
-		return r, nil
-	}
-	if len(obj.Array) != 4 {
-		return r, fmt.Errorf("invalid x4: %d", len(obj.Array))
-	}
-	var err error
-	r.Used = true
-	r.X0 = obj.Array[0].Int
-	r.X1, err = ParseX3(obj)
-	if err != nil {
-		return r, err
-	}
-	r.X2, err = ParseX2(obj)
-	if err != nil {
-		return r, err
-	}
-	r.X3, err = ParseX3(obj)
-	if err != nil {
-		return r, err
-	}
-	return r, nil
-}
-
-type StaticGameInfo struct {
-	X0 int64 `json:"x0"`
-	Role int64 `json:"role"`
-	X2 X2 `json:"x2"`
-	X3 X3 `json:"x3"`
-	X4 X4 `json:"x4"`
-}
-
-func ParseStaticGameInfo(obj JsonObject) (StaticGameInfo, error) {
-	r := StaticGameInfo{}
-	if len(obj.Array) != 5 {
-		return r, fmt.Errorf("invalid static_game_info: %d", len(obj.Array))
-	}
-	var err error
-	r.X0 = obj.Array[0].Int
-	r.Role = obj.Array[1].Int
-	r.X2, err = ParseX2(obj.Array[2])
-	if err != nil {
-		return r, err
-	}
-	r.X3, err = ParseX3(obj.Array[3])
-	if err != nil {
-		return r, err
-	}
-	//r.X4, err = ParseX4(obj.Array[3])
-	//if err != nil {
-	//	return r, err
-	//}
-	return r, nil
-}
-
-type GameState struct {
-	GameTick int64 `json:"game_tick"`
-	X1 X3 `json:"x1"`
-	
-}
-
-type Response struct {
-	GameStage int64 `json:"game_stage"`
-	StaticGameInfo StaticGameInfo `json:"static_game_info"`
-}
-
-func ParseResponse(obj JsonObject) (Response, error) {
-	r := Response{}
-	if len(obj.Array) != 4 {
-		return r, fmt.Errorf("invalid response")
-	}
-	var err error
-	r.GameStage = obj.Array[1].Int
-	r.StaticGameInfo, err = ParseStaticGameInfo(obj.Array[2])
-	if err != nil {
-		return r, err
-	}
-	return r, nil
-}
 
 func main() {
 	flag.Parse()
@@ -247,44 +265,20 @@ func main() {
 
 		w.Header().Set("Content-Type", "text/plain")
 
-		ships := map[string][]string{}
-		for _, line := range output {
-			// ###GUI TIME ID MSG
-			row := strings.SplitN(strings.TrimRight(line, "\r\n"), "\t", 4)
-			if len(row) != 4 {
+		fmt.Fprint(w, "[")
+		for i, line := range output {
+			//			###GUI TIME ID KEY MSG
+			row := strings.SplitN(strings.TrimRight(line, "\r\n"), "\t", 5)
+			if len(row) != 5 {
 				glog.Errorf("Invalid line: %s", line)
 				continue
 			}
-			ships[row[2]] = append(ships[row[2]], row[3])
-		}
-
-		// {"ship":{"role":1,"shipId":0,"position":{"x":-5,"y":-29},"velocity":{"x":-2,"y":7},"x4":[7,1,1,3],"x5":60,"x6":64,"x7":1},"appliedCommands":[]}
-
-
-		fmt.Fprintf(w, "[")
-		for shipID, msgs := range ships {
-			for _, msg := range msgs {
-				m := strings.SplitN(msg, "\t", 2)
-				if m[0] == "RESP" {
-					//glog.Infof("RESP: %s", m[1])
-					jo := Parse(m[1])
-					obj, err := ParseResponse(jo)
-					if err != nil {
-						glog.Errorf("%v", err)
-					}
-					buf, err := json.Marshal(obj)
-					if err != nil {
-						glog.Errorf("%v", err)
-					}
-					glog.Infof("RESP: %s", string(buf))
-				} else if m[0] == "SEND" {
-					glog.Infof("%v", Parse(m[1]))
-				}
-				fmt.Fprintf(w, `{"playerKey": "%s", "type": "%s", "command": %s},`, shipID, m[0], m[1])
-				fmt.Fprintf(w, "\n")
+			if i != 0 {
+				fmt.Fprintf(w, ",\n")
 			}
+			fmt.Fprintf(w, `{"response":%s}`, row[4])
 		}
-		fmt.Fprintf(w, "null]")
+		fmt.Fprint(w, "]")
 	})
 
 	addr := os.Getenv("GUI_ADDRESS")
@@ -293,84 +287,4 @@ func main() {
 	}
 	glog.Infof("Starting server (%s)...", addr)
 	http.ListenAndServe(addr, nil)
-}
-
-func ParseObject(x interface{}) JsonObject {
-	if xs, ok := x.([]interface{}); ok {
-		ys := make([]JsonObject, 0)
-		for _, x := range xs {
-			ys = append(ys, ParseObject(x))
-		}
-		return JsonObject{Array: ys}
-	}
-	if xs, ok := x.(string); ok {
-		if i, err := strconv.ParseInt(xs, 10, 64); err == nil {
-			return JsonObject{Int: i}
-		}
-		return JsonObject{String: xs}
-	}
-	return JsonObject{Unknown: x}
-}
-
-func Parse(s string) JsonObject {
-	s = regexp.MustCompile(`-?\d+`).ReplaceAllString(s, `"$0"`)
-	s = strings.ReplaceAll(s, "<", "[")
-	s = strings.ReplaceAll(s, ">", "]")
-	glog.Info(s)
-	var v interface{}
-	if err := json.Unmarshal([]byte(s), &v); err != nil {
-		glog.Errorf("failed to parse JSON: %v", err)
-	}
-	return ParseObject(v)
-}
-
-func EToJson(s string) string {
-	s = strings.ReplaceAll(s, "[", "@LIST_LEFT@")
-	s = strings.ReplaceAll(s, "]", "@LIST_RIGHT@")
-	s = strings.ReplaceAll(s, "<", "@PAIR_LEFT@")
-	s = strings.ReplaceAll(s, ">", "@PAIR_RIGHT@")
-	s = strings.ReplaceAll(s, "@PAIR_LEFT@", "[")
-	s = strings.ReplaceAll(s, "@PAIR_RIGHT@", "]")
-	s = strings.ReplaceAll(s, "@LIST_LEFT@@LIST_RIGHT@", "[]")
-	s = strings.ReplaceAll(s, "@LIST_LEFT@", "[")
-	s = strings.ReplaceAll(s, "@LIST_RIGHT@", ", null]")
-	// {"ship":{"role":1,"shipId":0,"position":{"x":-9,"y":-12},"velocity":{"x":-2,"y":9},"x4":[0,0,0,0],"x5":59,"x6":64,"x7":1},"appliedCommands":[]}
-	// [1, 0, [256, 1, [448, 2, 128], [16, 128], []], []]
-	//s, err := func() (string, error) {
-	//	var v []interface{}
-	//	if err := json.Unmarshal([]byte(s), &v); err != nil {
-	//		return "", err
-	//	}
-	//	if len(v) != 4 {
-	//		return "", fmt.Errorf("unexpected number of args: %v", v)
-	//	}
-	//	staticGameInfo, ok := v[2].([]interface{})
-	//	if !ok {
-	//		return "", fmt.Errorf("failed to parse staticGameInfo")
-	//	}
-	//	role, ok := staticGameInfo[1].(float64)
-	//	if !ok {
-	//		return "", fmt.Errorf("role is missing")
-	//	}
-	//	gameStage, ok := v[1].(float64)
-	//	if !ok {
-	//		return "", fmt.Errorf("role is missing")
-	//	}
-	//	vv := struct {
-	//		Role float64 `json:"role"`
-	//		GameStage float64 `json:"game_stage"`
-	//	}{
-	//		Role: role,
-	//		GameStage: gameStage,
-	//	}
-	//	buf, err := json.Marshal(vv)
-	//	if err != nil {
-	//		return "", err
-	//	}
-	//	return string(buf), nil
-	//}()
-	//if err != nil {
-	//	glog.Errorf("Failed to parse: %v: %s", err, s)
-	//}
-	return s
 }

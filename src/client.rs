@@ -17,6 +17,10 @@ pub struct Response {
 	pub state: State,
 }
 
+fn response_to_json(x: &Response) -> String {
+	format!("{{\"stage\":{},\"state\":{}}}", x.stage, state_to_json(&x.state))
+}
+
 #[derive(Debug, Clone)]
 pub struct Info {
 	pub deadline: i32,
@@ -40,6 +44,14 @@ pub struct State {
 	pub ships: Vec<Ship>,
 }
 
+fn state_to_json(x: &State) -> String {
+	let mut ships = Vec::new();
+	for s in &x.ships {
+		ships.push(ship_to_json(&s));
+	}
+	format!("{{\"ships\":[{}]}}", ships.connect(","))
+}
+
 #[derive(Debug, Clone)]
 pub struct Ship {
 	pub role: i32,
@@ -51,6 +63,10 @@ pub struct Ship {
 	pub max_heat: i32,
 	pub max_accelarate: i32,
 	pub commands: Vec<Command>,
+}
+
+fn ship_to_json(x: &Ship) -> String {
+	format!("{{\"role\":{},\"x\":{},\"y\":{}}}", x.role, x.pos.0, x.pos.1)
 }
 
 #[derive(Debug, Clone)]
@@ -139,7 +155,7 @@ impl Client {
 		}
 	}
 
-	pub fn gui(&self, name: &str, e: &E) {
+	pub fn gui(&self, name: &str, msg: &str) {
 		if let Ok(_) = env::var("JUDGE_SERVER") {
 			return;
 		}
@@ -147,7 +163,8 @@ impl Client {
 			Ok(t) => t.as_nanos(),
 			_ => 0,
 		};
-		let msg = format!("###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, e);
+		let msg = format!(
+			"###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, msg);
 		let mut printed = false;
 		if let Some(f) = &self.file {
 			f.borrow_mut().write_all(msg.as_bytes())
@@ -168,7 +185,6 @@ impl Client {
 		let (exp, n) = parser::parse(&ss, 0);
 		assert_eq!(n, ss.len());
 		let e = parser::eval(&exp, true);
-		self.gui("SEND", &e);
 		let msg = modulation::modulate(&e);
 		eprintln!("send: {}", msg);
 		let resp = self
@@ -182,7 +198,6 @@ impl Client {
 		eprintln!("resp: {}", resp);
 		let resp = modulation::demodulate(&resp);
 		eprintln!("resp: {}", resp);
-		self.gui("RESP", &resp);
 		resp
 	}
 	pub fn join(&mut self, player_key: &str) -> Response {
@@ -208,7 +223,9 @@ impl Client {
 			self.player_key,
 			cs.iter().join(", ")
 		));
-		parse(resp)
+		let resp = parse(resp);
+		self.gui("RESP", &response_to_json(&resp));
+		return resp
 	}
 }
 
