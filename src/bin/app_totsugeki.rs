@@ -59,7 +59,7 @@ fn run() {
 		// 次ステップのポジで重なるなら爆発！
 		let myp = PosVel::from(my_ship).apply_gravity().accelerate_and_move(dvx, dvy);
 		let enp = PosVel::from(en_ship).apply_gravity().accelerate_and_move(0, 0);
-		if myp.x == enp.x && myp.y == enp.y {
+		if (myp.x - enp.x).abs() + (myp.y - enp.y).abs() <= 3 {
 			eprintln!("{}", "BOMB!!!!!!!!".repeat(10));
 			commands.push(Command::Detonate(my_id, None));
 		}
