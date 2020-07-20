@@ -4,7 +4,7 @@ use app::client::*;
 
 const SIZE_OUTER: i32 = 128;
 const SIZE_INNER: i32 = 16;
-const MAX_V: i32 = 8;
+const MAX_V: i32 = 16;
 const STEP_LIMIT: i32 = 5;
 
 fn clip_int(x: i32, limit: i32) -> i32 {
@@ -12,7 +12,11 @@ fn clip_int(x: i32, limit: i32) -> i32 {
 }
 
 fn clip_pos(x: i32) -> i32 {
-	x.signum() * x.abs().min(SIZE_OUTER - 1)
+	clip_int(x, SIZE_OUTER - 1)
+}
+
+fn clip_vel(x: i32) -> i32 {
+	clip_int(x, MAX_V - 1)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,6 +118,52 @@ impl PosVel {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Copy, Clone, Debug)]
+struct PosVel8 {
+	x: i8,
+	y: i8,
+	vx: i8,
+	vy: i8,
+}
+
+impl From<PosVel> for Option<PosVel8> {
+	fn from(pv: PosVel) -> Self {
+		use std::convert::TryInto;
+
+		if pv.is_empty() {
+			None
+		} else {
+			Some(PosVel8 {
+				x: pv.x.try_into().unwrap(),
+				y: pv.y.try_into().unwrap(),
+				vx: pv.vx.try_into().unwrap(),
+				vy: pv.vy.try_into().unwrap(),
+			})
+		}
+	}
+}
+
+
+impl From<Option<PosVel8>> for PosVel {
+	fn from(pv: Option<PosVel8>) -> Self {
+		use std::convert::TryInto;
+
+		if let Some(pv) = pv {
+			Self {
+				x: pv.x.try_into().unwrap(),
+				y: pv.y.try_into().unwrap(),
+				vx: pv.vx.try_into().unwrap(),
+				vy: pv.vy.try_into().unwrap(),
+			}
+		} else {
+			PosVel::new_empty()
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(PartialEq, Copy, Clone, Debug)]
 struct BinaryHeapState {
 	cst: i32,
 	pv: PosVel,
@@ -136,22 +186,35 @@ impl Ord for BinaryHeapState {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct Router {
-	mem: Vec<Vec<Vec<Vec<(i32, PosVel)>>>>,
+	mem: Vec<Vec<Vec<Vec<(u16, (i32, Option<PosVel8>))>>>>,
+	uninitialized: (i32, Option<PosVel8>),
+	ver: u16,
 }
 
 impl Router {
 	fn new() -> Self {
+		let uninitialized = (i32::MAX, None);
 		Self {
-			mem: vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			mem: vec![vec![vec![vec![(u16::MAX, uninitialized); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			ver: 0,
+			uninitialized,
 		}
 	}
 
-	fn get(&self, s: &PosVel) -> &(i32, PosVel) {
-		&self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize]
+	fn get(&self, s: &PosVel) -> (i32, PosVel) {
+		let m = &self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize];
+		let val = {
+			if m.0 == self.ver {
+				m.1
+			} else {
+				self.uninitialized
+			}
+		};
+		(val.0, val.1.into())
 	}
 
 	fn set(&mut self, s: &PosVel, value: (i32, PosVel)) {
-		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = value;
+		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = (self.ver, (value.0, value.1.into()));
 	}
 
 	/// 次にするべき加速を返す
@@ -160,8 +223,14 @@ impl Router {
 	/// TODO: a starにする
 	/// TODO: 早くなったらvelocity上限あげたい
 	fn get_next_move(&mut self, sx: i32, sy: i32, vx: i32, vy: i32, tx: i32, ty: i32) -> ((i32, i32), i32) {
-		// TODO: これ消したい
-		self.mem = vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize];
+		// できればこれが起こるべきではない（外側でこういうパターンに対してケアされているべき）がout of boundsで死ぬよりよい
+		let sx = clip_pos(sx);
+		let sy = clip_pos(sy);
+		let vx = clip_int(vx, MAX_V);
+		let vy = clip_int(vy, MAX_V);
+
+		// self.mem = vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize];
+		self.ver += 1;  // これが事実上の配列クリアや！
 
 		let mut que = std::collections::BinaryHeap::new();
 		let pv = PosVel::new(sx, sy, vx, vy);
@@ -299,7 +368,7 @@ fn run() {
 		let enp = PosVel::from(en_ship).apply_gravity().accelerate_and_move(0, 0);
 		if myp.x == enp.x && myp.y == enp.y {
 			eprintln!("{}", "BOMB!!!!!!!!".repeat(10));
-			commands.push(Command::Detonate(my_id));
+			commands.push(Command::Detonate(my_id, None));
 		}
 
 		// dbg!((dvx, dvy));

@@ -2,6 +2,12 @@ use crate::parser::*;
 use crate::*;
 use ::reqwest::blocking as reqwest;
 use itertools::*;
+use std::time::SystemTime;
+use std::env;
+use std::io::BufWriter;
+use std::fs::File;
+use std::io::Write;
+use std::cell::RefCell;
 use std::ops::Range;
 
 #[derive(Debug, Clone)]
@@ -9,6 +15,10 @@ pub struct Response {
 	pub stage: i32,
 	pub info: Info,
 	pub state: State,
+}
+
+fn response_to_json(x: &Response) -> String {
+	format!("{{\"stage\":{},\"state\":{}}}", x.stage, state_to_json(&x.state))
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +44,14 @@ pub struct State {
 	pub ships: Vec<Ship>,
 }
 
+fn state_to_json(x: &State) -> String {
+	let mut ships = Vec::new();
+	for s in &x.ships {
+		ships.push(ship_to_json(&s));
+	}
+	format!("{{\"ships\":[{}]}}", ships.connect(","))
+}
+
 #[derive(Debug, Clone)]
 pub struct Ship {
 	pub role: i32,
@@ -47,11 +65,15 @@ pub struct Ship {
 	pub commands: Vec<Command>,
 }
 
+fn ship_to_json(x: &Ship) -> String {
+	format!("{{\"role\":{},\"x\":{},\"y\":{}}}", x.role, x.pos.0, x.pos.1)
+}
+
 #[derive(Debug, Clone)]
 pub enum Command {
 	Accelerate(i32, (i32, i32)),
-	Detonate(i32),
-	Shoot(i32, (i32, i32), i32),
+	Detonate(i32, Option<(i32, i32)>),               // 1, (impact, 32)
+	Shoot(i32, (i32, i32), i32, Option<(i32, i32)>), // 2, target, power, (impact, 4)
 	Split(i32, Params),
 	Unknown,
 }
@@ -68,8 +90,12 @@ impl std::fmt::Display for Command {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Command::Accelerate(id, v) => write!(f, "[0, {}, <{}, {}>]", id, v.0, v.1)?,
-			Command::Detonate(id) => write!(f, "[1, {}]", id)?,
-			Command::Shoot(id, t, x3) => write!(f, "[2, {}, <{}, {}>, {}]", id, t.0, t.1, x3)?,
+			Command::Detonate(id, None) => write!(f, "[1, {}]", id)?,
+			Command::Detonate(id, Some((a, b))) => write!(f, "[1, {}, {}, {}]", id, a, b)?,
+			Command::Shoot(id, t, p, None) => write!(f, "[2, {}, <{}, {}>, {}]", id, t.0, t.1, p)?,
+			Command::Shoot(id, t, p, Some((a, b))) => {
+				write!(f, "[2, {}, <{}, {}>, {}, {}, {}]", id, t.0, t.1, p, a, b)?
+			}
 			Command::Split(id, params) => write!(
 				f,
 				"[3, {}, [{}, {}, {}, {}]]",
@@ -88,8 +114,24 @@ impl From<&E> for Command {
 		let e = get_list(e).unwrap();
 		match get_num(&e[0]) {
 			0 => Command::Accelerate(-1, get_pair(&e[1])),
-			1 => Command::Detonate(-1),
-			2 => Command::Shoot(-1, get_pair(&e[1]), get_num(&e[2])),
+			1 => Command::Detonate(
+				-1,
+				if e.len() < 3 {
+					None
+				} else {
+					Some((get_num(&e[1]), get_num(&e[2])))
+				},
+			),
+			2 => Command::Shoot(
+				-1,
+				get_pair(&e[1]),
+				get_num(&e[2]),
+				if e.len() < 5 {
+					None
+				} else {
+					Some((get_num(&e[3]), get_num(&e[4])))
+				},
+			),
 			3 => {
 				let params = get_list(&e[1])
 					.unwrap()
@@ -114,7 +156,8 @@ impl From<&E> for Command {
 pub struct Client {
 	server_url: String,
 	player_key: String,
-	client: reqwest::Client,
+	file: Option<RefCell<BufWriter<File>>>,
+	client: reqwest::Client
 }
 
 impl Client {
@@ -127,9 +170,34 @@ impl Client {
 		Self {
 			server_url,
 			player_key: String::new(),
-			client: reqwest::Client::new(),
+			file: None,
+			client: reqwest::Client::new()
 		}
 	}
+
+	pub fn gui(&self, name: &str, msg: &str) {
+		if let Ok(_) = env::var("JUDGE_SERVER") {
+			return;
+		}
+		let t = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+			Ok(t) => t.as_nanos(),
+			_ => 0,
+		};
+		let msg = format!(
+			"###GUI\t{}\t{}\t{}\t{}\n", t, self.player_key, name, msg);
+		let mut printed = false;
+		if let Some(f) = &self.file {
+			f.borrow_mut().write_all(msg.as_bytes())
+				.expect("Failed to write to file");
+			printed = true;
+		}
+		if let Ok(_) = env::var("GUI") {
+			print!("{}", &msg);
+		} else if !printed {
+			print!("{}", &msg);
+		}
+	}
+
 	pub fn send(&self, msg: &str) -> E {
 		eprintln!("send: {}", msg);
 		let msg = to_text(&parse_lisp(msg).0);
@@ -138,7 +206,7 @@ impl Client {
 		assert_eq!(n, ss.len());
 		let e = parser::eval(&exp, true);
 		let msg = modulation::modulate(&e);
-		eprintln!("send: {}", msg);
+		// eprintln!("send: {}", msg);
 		let resp = self
 			.client
 			.post(&self.server_url)
@@ -147,13 +215,27 @@ impl Client {
 			.unwrap()
 			.text()
 			.unwrap();
-		eprintln!("resp: {}", resp);
+		// eprintln!("resp: {}", resp);
 		let resp = modulation::demodulate(&resp);
-		eprintln!("resp: {}", resp);
+		eprintln!("resp: {}", &resp);
+		// if let Some(state) = &resp.into_iter().skip(3).next() {
+		// 	if let Some(ships) = state.into_iter().skip(2).next() {
+		// 		for ship in ships {
+		// 			for cmd in ship.into_iter().skip(1).next().unwrap() {
+		// 				eprintln!("applied cmd: {}", cmd);
+		// 			}
+		// 		}
+		// 	}
+		// }
 		resp
 	}
 	pub fn join(&mut self, player_key: &str) -> Response {
 		self.player_key = player_key.to_owned();
+		if let Err(_) = env::var("JUDGE_SERVER") {
+			self.file = Some(RefCell::new(BufWriter::new(File::create(
+				&format!("out/{}", self.player_key))
+				.expect("out directory is missing"))));
+		}
 		let resp = self.send(&format!("[2, {}, [192496425430, 103652820]]", player_key));
 		parse(resp)
 	}
@@ -170,7 +252,9 @@ impl Client {
 			self.player_key,
 			cs.iter().join(", ")
 		));
-		parse(resp)
+		let resp = parse(resp);
+		self.gui("RESP", &response_to_json(&resp));
+		return resp
 	}
 }
 
