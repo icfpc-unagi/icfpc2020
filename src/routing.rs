@@ -277,6 +277,11 @@ impl Router {
     /// TODO: a starにする
     /// TODO: 早くなったらvelocity上限あげたい
     pub fn get_next_move(&mut self, sx: i32, sy: i32, vx: i32, vy: i32, tx: i32, ty: i32) -> ((i32, i32), i32) {
+        if !PosVel::new(sx, sy, vx, vy).is_in_valid_area() {
+            eprintln!("YAKEKUSO");
+            return ((sx.signum() * (-2), sy.signum() * (-2)), 0)
+        }
+
         // できればこれが起こるべきではない（外側でこういうパターンに対してケアされているべき）がout of boundsで死ぬよりよい
         let sx = clip_pos(sx);
         let sy = clip_pos(sy);
