@@ -39,18 +39,18 @@ fn check_v(dx: i32, dy: i32) -> bool {
 	dx < -10 || dx > 10 || dy < -10 || dy > 10
 }
 
-pub fn test_naive(mut x: i32, mut y: i32, mut dx: i32, mut dy: i32, gx: &Vec<Vec<i32>>, gy: &Vec<Vec<i32>>) -> i32 {
-	for t in 1..256 {
-		dx += gx[(x + W) as usize][(y + W) as usize];
-		dy += gy[(x + W) as usize][(y + W) as usize];
-		x += dx;
-		y += dy;
-		if check_range(x, y) || check_v(dx, dy) {
-			return t;
-		}
-	}
-	256
-}
+// pub fn test_naive(mut x: i32, mut y: i32, mut dx: i32, mut dy: i32, gx: &Vec<Vec<i32>>, gy: &Vec<Vec<i32>>) -> i32 {
+// 	for t in 1..256 {
+// 		dx += gx[(x + W) as usize][(y + W) as usize];
+// 		dy += gy[(x + W) as usize][(y + W) as usize];
+// 		x += dx;
+// 		y += dy;
+// 		if check_range(x, y) || check_v(dx, dy) {
+// 			return t;
+// 		}
+// 	}
+// 	256
+// }
 
 pub struct Preprocess {
 	gx: Vec<Vec<i32>>,
@@ -148,7 +148,7 @@ fn preprocess() -> Preprocess {
 		for j in 0..n {
 			for di in 0..m {
 				for dj in 0..m {
-					if dp[i][j][di][dj] >= 256 {
+					if dp[i][j][di][dj] >= 384 {
 					// if test_naive(i as i32 - W, j as i32 - W, di as i32 - 10, dj as i32 - 10, &gx, &gy) >= 256 {
 						count += 1;
 					}
@@ -159,6 +159,36 @@ fn preprocess() -> Preprocess {
 	eprintln!("preprocessed: {}", count);
 	eprintln!("time: {:.3}", get_time() - stime);
 	Preprocess { gx, gy, dp }
+}
+
+fn get_g(x: i32, y: i32) -> (i32, i32) {
+	let mut gx = 0;
+	let mut gy = 0;
+	if x.abs() > y.abs() {
+		if x < 0 {
+			gx = 1;
+		} else {
+			gx = -1;
+		}
+	} else if x.abs() < y.abs() {
+		if y < 0 {
+			gy = 1;
+		} else {
+			gy = -1;
+		}
+	} else {
+		if x < 0 {
+			gx = 1;
+		} else if x > 0 {
+			gx = -1;
+		}
+		if y < 0 {
+			gy = 1;
+		} else if y > 0 {
+			gy = -1;
+		}
+	}
+	(gx, gy)
 }
 
 fn rec(x: i32, y: i32, dx: i32, dy: i32, last_ax: i32, last_ay: i32, d: usize, prep: &Preprocess) -> (i32, usize) {
@@ -329,7 +359,7 @@ pub fn run() {
 		// resp = client.start(512 - power * 4 - cool * 12 - life * 2, power, cool, life);
 	} else {
 		let power = 0;
-		let cool = 4;
+		let cool = 0;
 		let life = 96;
 		resp = client.start(448 - power * 4 - cool * 12 - life * 2, power, cool, life);
 	}
@@ -339,11 +369,17 @@ pub fn run() {
 		let mut map = std::collections::BTreeMap::new();
 		for ship in &resp.state.ships {
 			if ship.role == resp.info.role {
-				map.entry(ship.pos).or_insert(vec![]).push(ship.clone());
+				map.entry((ship.pos, ship.v)).or_insert(vec![]).push(ship.clone());
 			}
 		}
 		let mut commands = vec![];
-		for (_, ships) in map {
+		let mut new_ships = vec![];
+		let mut moves = std::collections::BTreeSet::new();
+		let mut new_pos_count = std::collections::BTreeMap::new();
+		for (_, ships) in &map {
+			if ships.len() > 1 {
+				eprintln!("ships: {}", ships.len());
+			}
 			let ship = ships.iter().max_by_key(|s| (s.status.life, s.status.energy)).unwrap();
 			if ship.status.life > 1 && ships.len() == 1 && !check_range(ship.pos.0, ship.pos.1) && !check_v(ship.v.0, ship.v.1) {
 				let i = (ship.pos.0 + W) as usize;
@@ -365,6 +401,51 @@ pub fn run() {
 				let (dx, dy) = next_move(ship.pos.0, ship.pos.1, ship.v.0, ship.v.1, ships.len() > 1, resp.state.tick, &prep);
 				if (dx != 0 || dy != 0) && ship.status.energy >= dx.abs().max(dy.abs()) {
 					commands.push(Command::Accelerate(ship.id, (-dx, -dy)));
+					let mut new_ship = ship.clone();
+					let x = ship.pos.0;
+					let y = ship.pos.1;
+					let (gx, gy) = get_g(x, y);
+					let dx = ship.v.0 + dx + gx;
+					let dy = ship.v.1 + dy + gy;
+					new_ship.pos.0 = x + dx;
+					new_ship.pos.1 = y + dy;
+					new_ship.v.0 = dx;
+					new_ship.v.1 = dy;
+					moves.insert(new_ship.id);
+					*new_pos_count.entry((new_ship.pos, new_ship.v)).or_insert(0) += 1;
+					new_ships.push(new_ship);
+				}
+			}
+		}
+		for ship in &resp.state.ships {
+			if ship.role == resp.info.role && !moves.contains(&ship.id) {
+				let mut new_ship = ship.clone();
+				let x = ship.pos.0;
+				let y = ship.pos.1;
+				let (gx, gy) = get_g(x, y);
+				let dx = ship.v.0 + gx;
+				let dy = ship.v.1 + gy;
+				new_ship.pos.0 = x + dx;
+				new_ship.pos.1 = y + dy;
+				new_ship.v.0 = dx;
+				new_ship.v.1 = dy;
+				*new_pos_count.entry((new_ship.pos, new_ship.v)).or_insert(0) += 1;
+			}
+		}
+		for ship in new_ships {
+			if new_pos_count[&(ship.pos, ship.v)] == 1 && ship.status.life > 1 && !check_range(ship.pos.0, ship.pos.1) && !check_v(ship.v.0, ship.v.1) {
+				let i = (ship.pos.0 + W) as usize;
+				let j = (ship.pos.1 + W) as usize;
+				let di = (ship.v.0 + 10) as usize;
+				let dj = (ship.v.1 + 10) as usize;
+				if prep.dp[i][j][di][dj] + resp.state.tick > resp.info.deadline {
+					let params = if ship.status.life < 4 {
+						Params { energy: 0, power: 0, cool: 0, life: 1 }
+					} else {
+						Params { energy: ship.status.energy / 2, power: ship.status.power / 2, cool: ship.status.cool / 2, life: ship.status.life / 2 }
+					};
+					commands.push(Command::Split(ship.id, params));
+					eprintln!("early split!!!!!!!!!!!!!!!!!!!");
 				}
 			}
 		}
