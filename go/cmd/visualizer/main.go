@@ -116,6 +116,8 @@ func handle(w http.ResponseWriter, r *http.Request) {
 							}
 						}
 						scale = max_value * 2.5;
+						update_frame();
+
 					}
 				});
 		}
@@ -179,15 +181,16 @@ if ($("#frame")[0].value - 0 >= responses.length) {
 
 $("#frame").text(frame);
 
-
-var frame = $("#frame")[0].value - 0;
-
-console.log(responses[frame]);
-
-draw(responses[frame]);
+update_frame();
 
 });
 });
+
+function update_frame() {
+	var frame = $("#frame")[0].value - 0;
+	draw(responses[frame]);
+}
+
 
 function draw(response) {
 	clear();
