@@ -219,7 +219,7 @@ fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, prep: &Pr
 			return (best_x, best_y);
 		}
 	}
-	if check_range(x, y) {
+	if check_range(x, y) || check_v(dx, dy) {
 		let mut addy = 0;
 		let mut addx = 0;
 	
@@ -361,11 +361,25 @@ mod chokudai {
 	
 	}
 	
+	fn run_chokudai(){
+	
+		//CREATE
+		let server_url = std::env::args().nth(1).unwrap();
+		eprintln!("{}", server_url);
+		let mut client = Client::new(server_url);
+		if std::env::args().len() == 2 {
+			client.send("[1, 0]");
+			return;
+		}
+	
+		//JOIN
+		let player_key = std::env::args().nth(2).unwrap();
+		let join_resp = client.join(&player_key);
+	
+		run(client, join_resp);
+	}
+	
 	pub fn run(client: Client, join_resp: Response){
-		
-		//START
-		//set firstなんとか
-		
 		let mut all = 448;
 		if join_resp.info.role == 0 { all = 512; }
 		let shoot = 64;
@@ -387,10 +401,8 @@ mod chokudai {
 			resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data));
 			//dbg!(&resp);
 		}
-	
-	
-	
 	}
+	
 	
 	fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -> Vec<Command> {
 		
@@ -474,24 +486,24 @@ mod chokudai {
 			}
 		}
 	
-		if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
-			if enemyship.pos.1 >= 0 {
-				enemy_move_x = px;
-				enemy_move_y = py;
+		if enemyship.pos.0.abs() >= enemyship.pos.1.abs(){
+			if enemyship.pos.0 >= 0 {
+				enemy_move_x = enemy_move_x;
+				enemy_move_y = enemy_move_y;
 			}
 			else{
-				enemy_move_x = -px;
-				enemy_move_y = -py;
+				enemy_move_x = -enemy_move_x;
+				enemy_move_y = -enemy_move_y;
 			}
 		}
 		else {
-			if enemyship.pos.0 >= 0 {
-				enemy_move_x = py;
-				enemy_move_y = -px;
+			if enemyship.pos.1 >= 0 {
+				enemy_move_x = enemy_move_y;
+				enemy_move_y = -enemy_move_x;
 			}
 			else{
-				enemy_move_x = -py;
-				enemy_move_y = px;
+				enemy_move_x = -enemy_move_y;
+				enemy_move_y = enemy_move_x;
 			}
 		}
 		
@@ -603,6 +615,14 @@ mod chokudai {
 		return ret;
 	}
 	
+	fn main() {
+		let _ = ::std::thread::Builder::new()
+			.name("run_chokudai".to_string())
+			.stack_size(32 * 1024 * 1024)
+			.spawn(run_chokudai)
+			.unwrap()
+			.join();
+	}
 }
 
 fn main() {
