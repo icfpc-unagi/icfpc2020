@@ -118,6 +118,52 @@ impl PosVel {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Copy, Clone, Debug)]
+struct PosVel8 {
+	x: i8,
+	y: i8,
+	vx: i8,
+	vy: i8,
+}
+
+impl From<PosVel> for Option<PosVel8> {
+	fn from(pv: PosVel) -> Self {
+		use std::convert::TryInto;
+
+		if pv.is_empty() {
+			None
+		} else {
+			Some(PosVel8 {
+				x: pv.x.try_into().unwrap(),
+				y: pv.y.try_into().unwrap(),
+				vx: pv.vx.try_into().unwrap(),
+				vy: pv.vy.try_into().unwrap(),
+			})
+		}
+	}
+}
+
+
+impl From<Option<PosVel8>> for PosVel {
+	fn from(pv: Option<PosVel8>) -> Self {
+		use std::convert::TryInto;
+
+		if let Some(pv) = pv {
+			Self {
+				x: pv.x.try_into().unwrap(),
+				y: pv.y.try_into().unwrap(),
+				vx: pv.vx.try_into().unwrap(),
+				vy: pv.vy.try_into().unwrap(),
+			}
+		} else {
+			PosVel::new_empty()
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(PartialEq, Copy, Clone, Debug)]
 struct BinaryHeapState {
 	cst: i32,
 	pv: PosVel,
@@ -140,32 +186,35 @@ impl Ord for BinaryHeapState {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct Router {
-	mem: Vec<Vec<Vec<Vec<(usize, (i32, PosVel))>>>>,
-	uninitialized: (i32, PosVel),
-	ver: usize,
+	mem: Vec<Vec<Vec<Vec<(u16, (i32, Option<PosVel8>))>>>>,
+	uninitialized: (i32, Option<PosVel8>),
+	ver: u16,
 }
 
 impl Router {
 	fn new() -> Self {
-		let uninitialized = (i32::MAX, PosVel::new_empty());
+		let uninitialized = (i32::MAX, None);
 		Self {
-			mem: vec![vec![vec![vec![(usize::MAX, uninitialized); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			mem: vec![vec![vec![vec![(u16::MAX, uninitialized); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
 			ver: 0,
 			uninitialized,
 		}
 	}
 
-	fn get(&self, s: &PosVel) -> &(i32, PosVel) {
+	fn get(&self, s: &PosVel) -> (i32, PosVel) {
 		let m = &self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize];
-		if m.0 == self.ver {
-			&m.1
-		} else {
-			&self.uninitialized
-		}
+		let val = {
+			if m.0 == self.ver {
+				m.1
+			} else {
+				self.uninitialized
+			}
+		};
+		(val.0, val.1.into())
 	}
 
 	fn set(&mut self, s: &PosVel, value: (i32, PosVel)) {
-		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = (self.ver, value);
+		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = (self.ver, (value.0, value.1.into()));
 	}
 
 	/// 次にするべき加速を返す
