@@ -66,7 +66,12 @@ pub struct Ship {
 }
 
 fn ship_to_json(x: &Ship) -> String {
-	format!("{{\"role\":{},\"x\":{},\"y\":{}}}", x.role, x.pos.0, x.pos.1)
+	let mut commands = Vec::new();
+	for c in &x.commands {
+		commands.push(command_to_json(&c));
+	}
+	format!("{{\"role\":{},\"x\":{},\"y\":{},\"commands\":[{}]}}",
+		x.role, x.pos.0, x.pos.1, commands.connect(","))
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +81,19 @@ pub enum Command {
 	Shoot(i32, (i32, i32), i32, Option<(i32, i32)>), // 2, target, power, (impact, 4)
 	Split(i32, Params),
 	Unknown,
+}
+
+fn command_to_json(x: &Command) -> String {
+	match x {
+		Command::Accelerate(id, (x, y)) => format!(
+			"{{\"type\":\"accelerate\",\"id\":{},\"x\":{},\"y\":{}}}", id, x, y),
+		Command::Detonate(id, _) => format!(
+			"{{\"type\":\"detonate\",\"id\":{}}}", id),
+		Command::Shoot(id, (x, y), power, _) => format!(
+			"{{\"type\":\"shoot\",\"id\":{},\"x\":{},\"y\":{},\"power\":{}}}",
+			id, x, y, power),
+		_ => format!("{{}}"),
+	}
 }
 
 #[derive(Debug, Clone)]
