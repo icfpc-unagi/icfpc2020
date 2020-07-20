@@ -334,7 +334,8 @@ impl Router {
         // dbg!(&posvels);
 
         if posvels.len() == 0 {
-            panic!("weoifjpaoweifjpawoeijf {:?}", (sx, sy, vx, vy, tx, ty));
+            eprintln!("WARNING: no valid next move...");
+            // panic!("weoifjpaoweifjpawoeijf {:?}", (sx, sy, vx, vy, tx, ty));
         }
 
         let dvx;
