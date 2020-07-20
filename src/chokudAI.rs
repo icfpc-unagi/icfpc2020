@@ -4,6 +4,7 @@ use crate::wata::*;
 
 struct EnemyData{
 	pub pattern: Vec<Vec<i32>>,
+	pub go_near: bool, 
 
 }
 
@@ -26,31 +27,42 @@ pub fn run_chokudai() {
 }
 
 pub fn run(client: Client, join_resp: Response, prep: Preprocess){
-	let mut all = 448;
+
+
+	let mut router = super::routing::Router::new();
+
+	let all = join_resp.info.ability.potential;
 	let shoot = 64;
 	let mut heal = 10;
 	let life = 1;
-	if join_resp.info.role == 0 { all = 512; heal = 16;}
+	if join_resp.info.role == 0 { heal = 16;}
 	let energy = all - shoot * 4 - heal * 12 - life * 2;
 	
 	let mut resp = client.start(energy, shoot, heal, life);
 
 	let mut e_data = EnemyData{
 		pattern: vec![vec![0;5];5],
+		go_near: true 
 	};
 
 	let id = resp.state.ships.iter().find_map(|s| if s.role == resp.info.role { Some(s.id) } else { None }).unwrap();
 	let my_role = join_resp.info.role;
+
+
 	//COMMANDS
 	while resp.stage != 2 {
 
-		resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data));
+		resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data, &prep, &mut router));
 		//dbg!(&resp);
 	}
 }
 
 
-fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -> Vec<Command> {
+fn dist(a: &Ship, b: &Ship) -> i32{
+	return (a.pos.0 - b.pos.0).abs() + (a.pos.1 - b.pos.1).abs(); 
+}
+
+fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, prep: &Preprocess, router: &mut super::routing::Router) -> Vec<Command> {
 	
 	let mut myship = resp.state.ships[0].clone();
 	let mut enemyship = resp.state.ships[0].clone();
@@ -62,17 +74,27 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	for i in 0..resp.state.ships.len() {
 		let nowship = resp.state.ships[i].clone();
 		if nowship.role == *my_role {myship = nowship; }
-		else if !enemyshipflag || enemyship.status.energy < nowship.status.energy {
-			enemyship = nowship;
-			enemyshipflag = true;
-			for c in enemyship.commands.iter(){
-				if let Command::Accelerate(_, v) = c {
-					px = -v.0;
-					py = -v.1;
-					let ppx = 2 + px;
-					let ppy = 2 + py;
+	}
 
-					e_data.pattern[ppx as usize][ppy as usize] += 1;
+	let mut enemy_cnt = 0;
+
+	for i in 0..resp.state.ships.len() {
+		let nowship = resp.state.ships[i].clone();
+		if nowship.role != *my_role {
+			enemy_cnt += 1;
+			if !enemyshipflag || enemyship.status.energy < nowship.status.energy
+			|| (enemyship.status.energy == nowship.status.energy  
+				&& dist(&enemyship, &myship) > dist(&nowship, &myship)) {
+				enemyship = nowship;
+				enemyshipflag = true;
+				for c in enemyship.commands.iter(){
+					if let Command::Accelerate(_, v) = c {
+						px = -v.0;
+						py = -v.1;
+						let ppx = 2 + px;
+						let ppy = 2 + py;
+						e_data.pattern[ppx as usize][ppy as usize] += 1;
+					}
 				}
 			}
 		}
@@ -121,75 +143,39 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	//next_enemy[0] += enemy_move_x;
 	//next_enemy[1] += enemy_move_y;
 
-	let mut addy = 0;
 	let mut addx = 0;
+	let mut addy = 0;
 
-	if myship.pos.0.abs() < 30 && myship.pos.1.abs() < 30{
-		if myship.pos.0 < 0 { addx = -1; }
-		else {addx = 1;}
-		if myship.pos.1 < 0 { addy = -1; }
-		else {addy = 1;}
-	}
-	else
-	{
-
-		if myship.pos.0 >= 0 && myship.pos.0.abs() >= myship.pos.1.abs() {
-			if myship.v.1 < 7 {
-				addy = 1;
-				if myship.v.0 < 0 {addx = 1;}
-			}
-		}
-		if myship.pos.0 <= 0 && myship.pos.0.abs() >= myship.pos.1.abs() {
-			if myship.v.1 > -7 { 
-				addy = -1;
-				if myship.v.0 > 0 {addx = -1;}
-			}
-		}
-
-		if myship.pos.1 >= 0 && myship.pos.1.abs() >= myship.pos.0.abs() {
-			if myship.v.0 > -7 {
-				addx = -1;
-				if myship.v.1 < 0 {addy = 1;}
-			}
-		}
-		if myship.pos.1 <= 0 && myship.pos.1.abs() >= myship.pos.0.abs() {
-			if myship.v.0 < 7 { 
-				addx = 1;
-				if myship.v.1 > 0 {addy = -1;}
-			}
-		}
+	if myship.heat <= 20 && myship.status.energy >= 20{
+		e_data.go_near = true;
 	}
 
-	if myship.pos.0.abs() > 100{
-		if myship.pos.0 < 0 { addx = 1; }
-		else {addx = -1;}
-	}
-	
-	if myship.pos.1.abs() > 100{
-		if myship.pos.1 < 0 { addy = 1; }
-		else {addy = -1;}
+	if myship.heat >= myship.max_heat - 50 || myship.status.energy <= 20 || (enemy_cnt >= 10 && enemyship.status.energy < 5){
+		e_data.go_near = false;
 	}
 
-	
-	if myship.v.0.abs() > 10{
-		if myship.v.0 < 0 { addx = 1; }
-		else {addx = -1;}
+	if e_data.go_near {
+		eprintln!("Go Near!");
+		let (dvx, dvy) = router.doit(&myship, &enemyship);
+		addx = dvx;
+		addy = dvy;
 	}
-	
-	if myship.v.1.abs() > 10{
-		if myship.v.1 < 0 { addy = 1; }
-		else {addy = -1;}
+	else {
+		eprintln!("Loop!");
+		let r = to_orbit(myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, 200, prep);
+		addx = r.0;
+		addy = r.1;
 	}
 
 	let mut shoot_flag = false;
 	let mut accelerate_flag = false;
-	let mut shooty = next_enemy[0];
-	let mut shootx = next_enemy[1];
+	let shooty = next_enemy[0];
+	let shootx = next_enemy[1];
 
-	let mut next_me = vec![myship.pos.0+myship.v.0+addx, myship.pos.1+myship.v.1+addy];
+	let next_me = vec![myship.pos.0+myship.v.0+addx, myship.pos.1+myship.v.1+addy];
 
 
-	if myship.heat <= myship.max_heat - 60 {shoot_flag = true;}
+	if myship.heat <= myship.max_heat - 45 {shoot_flag = true;}
 
 	let maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[1]-next_enemy[1]).abs());
 	let minlen = (next_me[0]-next_enemy[0]).abs().min( (next_me[1]-next_enemy[1]).abs());
@@ -199,7 +185,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 
 	if !bad_angle || (!terrible_angle && minlen + maxlen <= 35) {
 		if addx == 0 && addy == 0 {
-			if minlen + maxlen <= 70 && enemyship.max_heat - enemyship.heat >= 30 && enemyship.status.power >= 30 {
+			if minlen + maxlen <= 70 && enemyship.max_heat - enemyship.heat >= 30 && enemyship.status.power >= 30 && myship.status.energy >= 10 {
 				let num = thread_rng().gen_range(0, 4);
 				addx = num / 2 * 2 - 1;
 				addy = num % 2 * 2 - 1;
