@@ -107,7 +107,7 @@ var last_data = "";
 var responses = [];
 
 // 画面のサイズ
-var scale = 1000;
+var scale = 256;
 
 $(function(){
 
@@ -116,7 +116,7 @@ const c = canvas.getContext('2d');
 
 function init() {
 	update();
-	setInterval(function(){ update() }, 1000);
+	//setInterval(function(){ update() }, 1000);
 }
 
 function update() {
@@ -135,7 +135,7 @@ function update() {
 				}
 			}
 
-			scale = max_value * 2.5;
+			//scale = max_value * 2.5;
 			update_frame();
 		}
 	});
