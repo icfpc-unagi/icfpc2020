@@ -4,7 +4,7 @@ use app::client::*;
 
 const SIZE_OUTER: i32 = 128;
 const SIZE_INNER: i32 = 16;
-const MAX_V: i32 = 16;
+const MAX_V: i32 = 8;
 const STEP_LIMIT: i32 = 5;
 
 fn clip_int(x: i32, limit: i32) -> i32 {
@@ -206,7 +206,7 @@ impl Router {
 			last_posvel = self.get(&last_posvel).1;
 		}
 		posvels.reverse();
-		dbg!(&posvels);
+		// dbg!(&posvels);
 
 		let dvx;
 		let dvy;
@@ -278,16 +278,20 @@ fn run() {
 		let my_ship = get_ship(&resp, my_id);
 		let en_ship = get_ship(&resp, en_id);
 
-		dbg!(my_ship);
-		dbg!(en_ship);
+		println!("TICK = {}, DISTANCE {}", resp.state.tick, (PosVel::from(my_ship).hypot_to(en_ship.pos.0, en_ship.pos.1) as f64).sqrt());
+
+		// dbg!(my_ship);
+		// dbg!(en_ship);
 
 		let tx = clip_pos(en_ship.pos.0);
 		let ty = clip_pos(en_ship.pos.1);
 		let (_, n_steps) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tx, ty);
 
-		let tx = clip_pos(en_ship.pos.0 + n_steps * en_ship.v.0);
-		let ty = clip_pos(en_ship.pos.1 + n_steps * en_ship.v.1);
-		let ((dvx, dvy), _) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tx, ty);
+		let mut tpv = PosVel::from(en_ship);
+		for _ in 0..n_steps {
+			tpv = tpv.apply_gravity().accelerate_and_move(0, 0);
+		}
+		let ((dvx, dvy), _) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tpv.x, tpv.y);
 		let mut commands = vec![Command::Accelerate(my_id, (-dvx, -dvy))];
 
 		// 次ステップのポジで重なるなら爆発！
@@ -298,7 +302,7 @@ fn run() {
 			commands.push(Command::Detonate(my_id));
 		}
 
-		dbg!((dvx, dvy));
+		// dbg!((dvx, dvy));
 		resp = client.command(&commands);
 	}
 }
