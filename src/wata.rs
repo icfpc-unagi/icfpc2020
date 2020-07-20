@@ -222,11 +222,15 @@ fn rec(x: i32, y: i32, dx: i32, dy: i32, last_ax: i32, last_ay: i32, d: usize, p
 	best
 }
 
-pub fn to_orbit(x: i32, y: i32, vx: i32, vy: i32, remaining_time: i32, prep: &Preprocess) -> (i32, i32) {
+pub fn to_orbit(x: i32, y: i32, vx: i32, vy: i32, remaining_time: i32, prep: &mut Preprocess) -> (i32, i32) {
 	if on_orbit(x, y, vx, vy, remaining_time, prep) {
 		(0, 0)
 	} else {
-		next_move(x, y, vx, vy, false, 0, prep)
+		if check_range(x, y) || check_v(vx, vy) {
+			prep.router.get_next_move(x, y, vx, vy, x, y).0
+		} else {
+			next_move(x, y, vx, vy, false, 0, prep)
+		}
 	}
 }
 
@@ -354,12 +358,14 @@ pub fn run() {
 	let mut resp = client.join(&player_key);
 	dbg!(&resp);
 	if resp.info.role == 0 {
-		crate::chokudAI::run(client, resp, prep);
-		return;
-		// let power = 30;
-		// let cool = 10;
-		// let life = 1;
-		// resp = client.start(512 - power * 4 - cool * 12 - life * 2, power, cool, life);
+		if resp.info.opponent_params.life == 1 || true {
+			crate::chokudAI::run(client, resp, prep);
+			return;
+		}
+		let power = 0;
+		let cool = 0;
+		let life = 96;
+		resp = client.start(512 - power * 4 - cool * 12 - life * 2, power, cool, life);
 	} else {
 		let power = 0;
 		let cool = 0;
@@ -370,12 +376,45 @@ pub fn run() {
 	while resp.stage != 2 {
 		let stime = get_time();
 		let mut map = std::collections::BTreeMap::new();
+		let mut commands = vec![];
 		for ship in &resp.state.ships {
 			if ship.role == resp.info.role {
 				map.entry((ship.pos, ship.v)).or_insert(vec![]).push(ship.clone());
 			}
 		}
-		let mut commands = vec![];
+		let mut killed = std::collections::BTreeSet::new();
+		if resp.info.role == 0 {
+			for ship in &resp.state.ships {
+				if ship.role == resp.info.role && ship.status.power == 0 && ship.status.life <= 2 {
+					let x = ship.pos.0;
+					let y = ship.pos.1;
+					let dx = ship.v.0;
+					let dy = ship.v.1;
+					let (gx, gy) = get_g(x, y);
+					let x = x + dx + gx;
+					let y = y + dy + gy;
+					let mut bomb = false;
+					for ship2 in &resp.state.ships {
+						if ship2.role != resp.info.role && killed.contains(&ship2.id) {
+							let x2 = ship2.pos.0;
+							let y2 = ship2.pos.1;
+							let dx2 = ship2.v.0;
+							let dy2 = ship2.v.1;
+							let (gx2, gy2) = get_g(x2, y2);
+							let x2 = x2 + dx2 + gx2;
+							let y2 = y2 + dy2 + gy2;
+							if (x - x2).abs().max((y - y2).abs()) <= 2 {
+								killed.insert(ship2.id);
+								bomb = true;
+							}
+						}
+					}
+					if bomb {
+						
+					}
+				}
+			}
+		}
 		let mut new_ships = vec![];
 		let mut moves = std::collections::BTreeSet::new();
 		let mut new_pos_count = std::collections::BTreeMap::new();
