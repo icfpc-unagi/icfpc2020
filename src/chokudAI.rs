@@ -1,5 +1,6 @@
 use crate::client::*;
 use rand::prelude::*;
+use crate::wata::*;
 
 struct EnemyData{
 	pub pattern: Vec<Vec<i32>>,
@@ -8,23 +9,23 @@ struct EnemyData{
 
 pub fn run_chokudai() {
 
-	//CREATE
-	let server_url = std::env::args().nth(1).unwrap();
-	eprintln!("{}", server_url);
-	let mut client = Client::new(server_url);
-	if std::env::args().len() == 2 {
-		client.send("[1, 0]");
-		return;
-	}
+	// //CREATE
+	// let server_url = std::env::args().nth(1).unwrap();
+	// eprintln!("{}", server_url);
+	// let mut client = Client::new(server_url);
+	// if std::env::args().len() == 2 {
+	// 	client.send("[1, 0]");
+	// 	return;
+	// }
 
-	//JOIN
-	let player_key = std::env::args().nth(2).unwrap();
-	let join_resp = client.join(&player_key);
+	// //JOIN
+	// let player_key = std::env::args().nth(2).unwrap();
+	// let join_resp = client.join(&player_key);
 
-	run(client, join_resp);
+	// run(client, join_resp);
 }
 
-pub fn run(client: Client, join_resp: Response){
+pub fn run(client: Client, join_resp: Response, prep: Preprocess){
 	let mut all = 448;
 	let shoot = 64;
 	let mut heal = 10;

@@ -7,3 +7,4 @@ pub mod visualize;
 pub mod recognize;
 pub mod client;
 pub mod chokudAI;
+pub mod wata;
