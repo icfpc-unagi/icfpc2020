@@ -6,7 +6,7 @@ struct EnemyData{
 
 }
 
-fn run(){
+fn run_chokudai(){
 
 	//CREATE
 	let server_url = std::env::args().nth(1).unwrap();
@@ -21,9 +21,10 @@ fn run(){
 	let player_key = std::env::args().nth(2).unwrap();
 	let join_resp = client.join(&player_key);
 
-	//START
-	//set firstなんとか
-	
+	run(client, join_resp);
+}
+
+pub fn run(client: Client, join_resp: Response){
 	let mut all = 448;
 	if join_resp.info.role == 0 { all = 512; }
 	let shoot = 64;
@@ -45,10 +46,8 @@ fn run(){
 		resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data));
 		//dbg!(&resp);
 	}
-
-
-
 }
+
 
 fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -> Vec<Command> {
 	
@@ -134,22 +133,22 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 
 	if enemyship.pos.0.abs() >= enemyship.pos.1.abs(){
 		if enemyship.pos.0 >= 0 {
-			enemy_move_x = px;
-			enemy_move_y = py;
+			enemy_move_x = enemy_move_x;
+			enemy_move_y = enemy_move_y;
 		}
 		else{
-			enemy_move_x = -px;
-			enemy_move_y = -py;
+			enemy_move_x = -enemy_move_x;
+			enemy_move_y = -enemy_move_y;
 		}
 	}
 	else {
 		if enemyship.pos.1 >= 0 {
-			enemy_move_x = py;
-			enemy_move_y = -px;
+			enemy_move_x = enemy_move_y;
+			enemy_move_y = -enemy_move_x;
 		}
 		else{
-			enemy_move_x = -py;
-			enemy_move_y = px;
+			enemy_move_x = -enemy_move_y;
+			enemy_move_y = enemy_move_x;
 		}
 	}
 	
@@ -263,9 +262,9 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 
 fn main() {
 	let _ = ::std::thread::Builder::new()
-		.name("run".to_string())
+		.name("run_chokudai".to_string())
 		.stack_size(32 * 1024 * 1024)
-		.spawn(run)
+		.spawn(run_chokudai)
 		.unwrap()
 		.join();
 }
