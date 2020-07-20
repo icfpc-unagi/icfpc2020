@@ -273,8 +273,7 @@ impl Client {
 		let e = parser::eval(&exp, true);
 		let msg = modulation::modulate(&e);
 		// eprintln!("send: {}", msg);
-		{
-			let mut guard = last_send.lock().unwrap();
+		if let Ok(mut guard) = last_send.lock() {
 			if let Some(t) = guard.clone() {
 				let duration = Utc::now() - t;
 				if duration.num_milliseconds() > 500 {
@@ -295,8 +294,7 @@ impl Client {
 			.unwrap()
 			.text()
 			.unwrap();
-		{
-			let mut guard = last_send.lock().unwrap();
+		if let Ok(mut guard) = last_send.lock() {
 			*guard = Some(Utc::now());
 		}
 		// eprintln!("resp: {}", resp);
