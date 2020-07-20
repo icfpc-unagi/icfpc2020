@@ -49,8 +49,9 @@ fn run() {
 		
 		let shoot_now = myship.heat -myship.status.cool + 16 <= myship.max_heat;
 		if shoot_now {
-			dx = rng.gen_range(-20, 20);
-			dy = rng.gen_range(-20, 20);
+			let fix = resp.info.role;
+			dx = rng.gen_range(0, 20) + fix;
+			dy = rng.gen_range(0, 20) + fix;
 			let shoot_power = power;
 			commands.push(Command::Shoot(1, (myship.pos.0 + dx, myship.pos.1 + dy), shoot_power, None));
 		}
@@ -66,7 +67,8 @@ fn run() {
 				for cmd in ship.commands.iter() {
 					match cmd {
 						Command::Shoot(_, (x,y), p, Some((impact, four))) => {
-							println!("({},{}), power={} impact={}, four={}",
+							println!("_, x, y, power, impact, four");
+							println!("[shoot], {}, {}, {}, {}, {}",
 								x - ship.pos.0,y - ship.pos.1, p, impact, four);
 						},
 						_=> {},
