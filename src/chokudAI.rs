@@ -73,13 +73,11 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 						if enemyship.pos.0 >= 0 {
 							e_data.pattern[ppx as usize][ppy as usize] += 1;
 						}
-						
 						if enemyship.pos.0 <= 0 {
 							e_data.pattern[(4 - ppx) as usize][(4 - ppy) as usize] += 1;
 						}
 					}
-
-					if enemyship.pos.1.abs() >= enemyship.pos.0.abs() {
+					else {
 						if enemyship.pos.1 >= 0 {
 							e_data.pattern[ppy as usize][(4 - ppx) as usize] += 1;
 						}
@@ -96,7 +94,6 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 
 	let mut next_enemy = vec![enemyship.pos.0 + enemyship.v.0, enemyship.pos.1 + enemyship.v.1];
 
-	
 	if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
 		if enemyship.pos.1 >= 0 {
 			next_enemy[1] -= 1;
@@ -143,17 +140,29 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	}
 	else {
 		if enemyship.pos.1 >= 0 {
-			enemy_move_x = enemy_move_y;
-			enemy_move_y = -enemy_move_x;
-		}
-		else{
 			enemy_move_x = -enemy_move_y;
 			enemy_move_y = enemy_move_x;
 		}
+		else{
+			enemy_move_x = enemy_move_y;
+			enemy_move_y = -enemy_move_x;
+		}
 	}
 	
-	next_enemy[0] += enemy_move_x;
-	next_enemy[1] += enemy_move_y;
+
+
+	if enemyship.pos.0.abs() != enemyship.pos.1.abs() {
+		
+		next_enemy[0] += px;
+		next_enemy[1] += py;
+		//next_enemy[0] += enemy_move_x;
+		//next_enemy[1] += enemy_move_y;
+	}
+	else{
+		next_enemy[0] += px;
+		next_enemy[1] += py;
+	}
+
 
 	let mut addy = 0;
 	let mut addx = 0;
