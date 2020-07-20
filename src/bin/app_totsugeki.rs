@@ -319,6 +319,7 @@ fn get_next_pos(ship: &Ship) -> (i32, i32) {
 }
 
 fn run() {
+	println!("!!!TOTSUGEKI!!!!");
 	let mut router = Router::new();
 	/*
 	router.get_next_move(50, 50, 0, 0, -50, -50);
