@@ -146,11 +146,11 @@ $(window).keydown(function(e){
 	var frame = $("#frame").text();
 
 	// LEFT
-	if (e.keyCode == 37) {
+	if (e.keyCode == 37 || e.keyCode == 65) {
 		$("#frame").text($("#frame").text() - 1);
 	}
 	// RIGHT
-	if (e.keyCode == 39) {
+	if (e.keyCode == 39 || e.keyCode == 68) {
 		$("#frame").text($("#frame").text() - 0 + 1);
 	}
 
@@ -186,6 +186,25 @@ function draw(response) {
 	var ships = response["state"]["ships"];
 	const canvas = document.getElementById('canvas');
 
+	// Detonate
+	for (var i = 0; i < ships.length; i++) {
+		var ship = ships[i];
+		var commands = ship["commands"];
+		for (var j = 0; j < commands.length; j++) {
+			var command = commands[j];
+			if (command["type"] == "detonate") {
+				rect(
+					to_canvas_x(ship["x"] - 10),
+					to_canvas_y(ship["y"] - 10),
+					to_canvas_x(ship["x"] + 10),
+					to_canvas_y(ship["y"] + 10),
+					"#ff88ff",
+				);
+			}
+		}
+	}
+
+	// Ships
 	for (var i = 0; i < ships.length; i++) {
 		var ship = ships[i];
 		color = "#ff8800";
@@ -198,6 +217,7 @@ function draw(response) {
 			10, color);
 	}
 
+	// Beam
 	for (var i = 0; i < ships.length; i++) {
 		var ship = ships[i];
 		color = "#ff8800";
@@ -223,7 +243,7 @@ function draw(response) {
 		}
 	}
 
-	// 太陽
+	// The Sun
 	c.beginPath();
 	c.rect(
 		 canvas.width / 2 - 16 / scale * canvas.width,
@@ -257,11 +277,12 @@ function circle(x, y, r, color) {
 	c.stroke();
 }
 
-function rect() {
-	//c.clearRect(0, 0, canvas.width, canvas.height);
+function rect(x1, y1, x2, y2, color) {
 	c.beginPath();
-	c.fillStyle = "#000022";
-	c.rect(0, 0, canvas.width, canvas.height);
+	c.fillStyle = color;
+	c.strokeStyle = color;
+	c.rect(x1, y1, x2 - x1, y2 - y1);
+	c.lineWidth = 1;
 	c.fill();
 	c.stroke();
 }
