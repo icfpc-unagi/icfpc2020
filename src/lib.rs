@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 pub mod modulation;
 pub mod parser;
 pub mod sender;

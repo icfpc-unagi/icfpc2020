@@ -9,6 +9,13 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::ops::Range;
 use std::time::SystemTime;
+use std::sync::{Arc, Mutex};
+use chrono::{Utc, Local, DateTime, NaiveDateTime};
+
+lazy_static! {
+    static ref last_send: Arc<Mutex<Option<DateTime<Utc>>>> =
+        Arc::new(Mutex::new(None));
+}
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -266,6 +273,20 @@ impl Client {
 		let e = parser::eval(&exp, true);
 		let msg = modulation::modulate(&e);
 		// eprintln!("send: {}", msg);
+		{
+			let mut guard = last_send.lock().unwrap();
+			if let Some(t) = guard.clone() {
+				let duration = Utc::now() - t;
+				if duration.num_milliseconds() > 500 {
+					eprintln!("############################################################");
+					eprintln!("AI took too much CPU time! ({} ms)", duration.num_milliseconds());
+					eprintln!("############################################################");
+				}
+				eprintln!("AI took {} ms.", duration.num_milliseconds());
+			} else {
+				eprintln!("First send request.");
+			}
+		}
 		let resp = self
 			.client
 			.post(&self.server_url)
@@ -274,6 +295,10 @@ impl Client {
 			.unwrap()
 			.text()
 			.unwrap();
+		{
+			let mut guard = last_send.lock().unwrap();
+			*guard = Some(Utc::now());
+		}
 		// eprintln!("resp: {}", resp);
 		let resp = modulation::demodulate(&resp);
 		eprintln!("resp: {}", &resp);

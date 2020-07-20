@@ -19,6 +19,7 @@ dependencies = [
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "colored",
  "colorous",
  "crossbeam",
@@ -29,6 +30,7 @@ dependencies = [
  "hyper-tls",
  "image",
  "itertools",
+ "lazy_static",
  "num",
  "rand 0.7.3",
  "reqwest",
@@ -120,6 +122,17 @@ name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+
+[[package]]
+name = "chrono"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c74d84029116787153e02106bf53e66828452a4b325cc8652b788b5967c0a0b6"
+dependencies = [
+ "num-integer",
+ "num-traits",
+ "time",
+]
 
 [[package]]
 name = "clap"

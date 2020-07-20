@@ -20,6 +20,8 @@ structopt = "*"
 itertools = "*"
 colored = "*"
 crossbeam = "*"
+chrono = "*"
+lazy_static = "*"
 
 [profile.release]
 debug = true
