@@ -18,7 +18,11 @@ pub struct Response {
 }
 
 fn response_to_json(x: &Response) -> String {
-	format!("{{\"stage\":{},\"state\":{}}}", x.stage, state_to_json(&x.state))
+	map_to_json(vec![
+		("stage", format!("{}", x.stage)),
+		("info", info_to_json(&x.info)),
+		("state", state_to_json(&x.state)),
+	])
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +32,14 @@ pub struct Info {
 	pub ability: Ability,
 	pub range: Range<i32>,
 	pub opponent_params: Params,
+}
+
+fn info_to_json(x: &Info) -> String {
+	map_to_json(vec![
+		("deadline", format!("{}", x.deadline)),
+		("role", format!("{}", x.role)),
+		("opponent_params", params_to_json(&x.opponent_params)),
+	])
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +61,10 @@ fn state_to_json(x: &State) -> String {
 	for s in &x.ships {
 		ships.push(ship_to_json(&s));
 	}
-	format!("{{\"ships\":[{}]}}", ships.connect(","))
+	map_to_json(vec![
+		("tick", format!("{}", x.tick)),
+		("ships", format!("[{}]", ships.join(","))),
+	])
 }
 
 #[derive(Debug, Clone)]
@@ -70,8 +85,18 @@ fn ship_to_json(x: &Ship) -> String {
 	for c in &x.commands {
 		commands.push(command_to_json(&c));
 	}
-	format!("{{\"role\":{},\"x\":{},\"y\":{},\"commands\":[{}]}}",
-		x.role, x.pos.0, x.pos.1, commands.connect(","))
+	map_to_json(vec![
+		("role", format!("{}", x.role)),
+		("x", format!("{}", x.pos.0)),
+		("y", format!("{}", x.pos.1)),
+		("vx", format!("{}", x.v.0)),
+		("vy", format!("{}", x.v.1)),
+		("status", params_to_json(&x.status)),
+		("heat", format!("{}", x.heat)),
+		("max_heat", format!("{}", x.max_heat)),
+		("max_accelarate", format!("{}", x.max_accelarate)),
+		("commands", format!("[{}]", commands.connect(","))),
+	])
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +117,9 @@ fn command_to_json(x: &Command) -> String {
 		Command::Shoot(id, (x, y), power, _) => format!(
 			"{{\"type\":\"shoot\",\"id\":{},\"x\":{},\"y\":{},\"power\":{}}}",
 			id, x, y, power),
+		Command::Split(id, params) => format!(
+			"{{\"type\":\"split\",\"id\":{},\"params\":{}}}",
+			id, params_to_json(&params)),
 		_ => format!("{{}}"),
 	}
 }
@@ -102,6 +130,19 @@ pub struct Params {
 	pub power: i32,
 	pub cool: i32,
 	pub life: i32,
+}
+
+fn params_to_json(x: &Params) -> String {
+	format!("{{\"energy\":{},\"power\":{},\"cool\":{},\"life\":{}}}",
+		x.energy, x.power, x.cool, x.life)
+}
+
+fn map_to_json(m: Vec<(&str, String)>) -> String {
+	let mut kvs = Vec::new();
+	for kv in m {
+		kvs.push(format!("\"{}\":{}", kv.0, kv.1));
+	}
+	format!("{{{}}}", kvs.join(","))
 }
 
 impl std::fmt::Display for Command {
