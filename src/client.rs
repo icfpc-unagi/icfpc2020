@@ -317,7 +317,7 @@ pub fn parse(e: E) -> Response {
 		},
 		state: State {
 			tick,
-			strange,
+			range: strange,
 			ships,
 		},
 	}
