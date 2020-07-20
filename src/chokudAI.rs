@@ -172,8 +172,11 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 
 	if myship.heat <= myship.max_heat - 45 {shoot_flag = true;}
 
-	let maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[1]-next_enemy[1]).abs());
-	let minlen = (next_me[0]-next_enemy[0]).abs().min( (next_me[1]-next_enemy[1]).abs());
+	let mut maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[1]-next_enemy[1]).abs());
+	let mut minlen = (next_me[0]-next_enemy[0]).abs().min( (next_me[1]-next_enemy[1]).abs());
+
+	if maxlen == 0 { maxlen = 1; minlen = 1;}
+
 	let attack = myship.status.power.min(myship.max_heat - myship.heat);
 	let impact = ((attack * 3 + 1) * (maxlen - 2 * minlen) / maxlen - maxlen).max(0);
 	let eattack = enemyship.status.power.min(enemyship.max_heat - enemyship.heat);
@@ -188,7 +191,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 			}
 		}
 	}
-	if impact < 64{
+	if impact < 64 {
 		shoot_flag = false;
 	}
 
@@ -205,6 +208,9 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 		ret.push(Command::Shoot(*id, (shooty, shootx), 64, None));
 	}
 
+	if enemy_cnt <= 1 && maxlen <= 2{
+		ret.push(Command::Detonate(*id, None));
+	}
 
 	return ret;
 }
