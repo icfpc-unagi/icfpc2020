@@ -28,7 +28,7 @@ pub fn run(client: Client, join_resp: Response){
 	let mut all = 448;
 	if join_resp.info.role == 0 { all = 512; }
 	let shoot = 64;
-	let heal = 10;
+	let heal = 16;
 	let life = 1;
 	let energy = all - shoot * 4 - heal * 12 - life * 2;
 	
