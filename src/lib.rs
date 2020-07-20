@@ -9,3 +9,4 @@ pub mod client;
 pub mod chokudAI;
 pub mod wata;
 pub mod routing;
+pub mod chokudAIOld;

@@ -119,7 +119,7 @@ impl PosVel {
         }
     }
 
-    pub fn is_in_valid_area(&self) -> bool {
+    fn is_in_invalid_area_sub(&self) -> bool {
         if SIZE_OUTER <= self.x.abs() || SIZE_OUTER <= self.y.abs()  {
             return false;
         }
@@ -132,6 +132,37 @@ impl PosVel {
 
         if !is_valid_1d(self.x, self.vx) || !is_valid_1d(self.y, self.vy) {
             return false;
+        }
+        true
+    }
+
+    pub fn is_in_valid_area(&self) -> bool {
+        let n_simulated_iters = 4;  // 4ステップ試すぽよ……
+
+        if !self.is_in_invalid_area_sub() {
+            return false;
+        }
+
+        let mut any_ok = false;
+        for &dvx in &[-2, 2] {
+            for &dvy in &[-2, 2] {
+                let mut ok = true;
+                let mut pv = self.clone();
+                for _ in 0..n_simulated_iters {
+                    pv = pv.apply_gravity().accelerate_and_move(dvx, dvy);
+                    if !pv.is_in_invalid_area_sub() {
+                        ok |= false;
+                        break;
+                    }
+                }
+                any_ok |= ok;
+                if any_ok {
+                    break;
+                }
+            }
+            if any_ok {
+                break;
+            }
         }
 
         true
@@ -271,6 +302,8 @@ impl Router {
 
         let mut best_entry = (i32::MAX, i32::MAX, PosVel::new_empty());
         while let Some(s) = que.pop() {
+            // dbg!(&s);
+
             let hypot = s.pv.hypot_to(tx, ty);
             if s.cst > 0 && (hypot, s.cst) < (best_entry.0, best_entry.1) {
                 // s.cst == 0を除外するのは、これを入れちゃうと、離れるしかないときにすぐ虚無になっちゃうから
@@ -306,6 +339,10 @@ impl Router {
         posvels.reverse();
         // dbg!(&posvels);
 
+        if posvels.len() == 0 {
+            panic!("weoifjpaoweifjpawoeijf {:?}", (sx, sy, vx, vy, tx, ty));
+        }
+
         let dvx;
         let dvy;
         if posvels.len() < 2 {
@@ -315,7 +352,13 @@ impl Router {
             dvx = posvels[1].vx - posvels[0].vx;
             dvy = posvels[1].vy - posvels[0].vy;
         }
-        let (gx, gy) = posvels[0].get_gravity();
+        let (gx, gy) = {
+            if posvels.is_empty() {
+                (0, 0)
+            } else {
+                posvels[0].get_gravity()
+            }
+        };
 
         ((dvx - gx, dvy - gy), best_entry.1)
     }
@@ -333,14 +376,20 @@ impl Router {
 
         let tx = clip_pos(en_ship.pos.0);
         let ty = clip_pos(en_ship.pos.1);
+
+        // これはギリギリはみ出さないテストをするとき用
+        // let tx = -100;
+        // let ty = -100;
+
         let (_, n_steps) = self.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tx, ty);
 
         let mut tpv = PosVel::from(en_ship);
         for _ in 0..n_steps {
             tpv = tpv.apply_gravity().accelerate_and_move(0, 0);
         }
+
         // これはギリギリはみ出さないテストをするとき用
-        // let tpv = PosVel::new(127, 127, 0, 0);
+        // let tpv = PosVel::new(17, 17, 0, 0);
 
         let ((dvx, dvy), _) = self.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tpv.x, tpv.y);
 

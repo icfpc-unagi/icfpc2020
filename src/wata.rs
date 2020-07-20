@@ -170,7 +170,7 @@ fn rec(x: i32, y: i32, dx: i32, dy: i32, last_ax: i32, last_ay: i32, d: usize, p
 	let di = (dx + 10) as usize;
 	let dj = (dy + 10) as usize;
 	let mut best = (prep.dp[i][j][di][dj], d);
-	if d == 0 {
+	if d == 0 || best.0 == INF {
 		return best;
 	}
 	for ax in -2..=2 {
@@ -190,16 +190,23 @@ fn rec(x: i32, y: i32, dx: i32, dy: i32, last_ax: i32, last_ay: i32, d: usize, p
 }
 
 pub fn to_orbit(x: i32, y: i32, vx: i32, vy: i32, remaining_time: i32, prep: &Preprocess) -> (i32, i32) {
+	if on_orbit(x, y, vx, vy, remaining_time, prep) {
+		(0, 0)
+	} else {
+		next_move(x, y, vx, vy, false, 0, prep)
+	}
+}
+
+pub fn on_orbit(x: i32, y: i32, vx: i32, vy: i32, remaining_time: i32, prep: &Preprocess) -> bool {
 	if !check_range(x, y) && !check_v(vx, vy) {
 		let i = (x + W) as usize;
 		let j = (y + W) as usize;
 		let di = (vx + 10) as usize;
 		let dj = (vy + 10) as usize;
-		if prep.dp[i][j][di][dj] > remaining_time {
-			return (0, 0);
-		}
+		prep.dp[i][j][di][dj] > remaining_time
+	} else {
+		false
 	}
-	next_move(x, y, vx, vy, false, 0, prep)
 }
 
 fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, prep: &Preprocess) -> (i32, i32) {
@@ -295,7 +302,7 @@ fn next_move(x: i32, y: i32, dx: i32, dy: i32, force: bool, tick: i32, prep: &Pr
 				}
 				let dx = dx + ax + prep.gx[i][j];
 				let dy = dy + ay + prep.gy[i][j];
-				if best.setmax(rec(x + dx, y + dy, dx, dy, ax, ay, 5, prep)) {
+				if best.setmax(rec(x + dx, y + dy, dx, dy, ax, ay, 4, prep)) {
 					best_x = ax;
 					best_y = ay;
 				}
@@ -322,43 +329,46 @@ pub fn run() {
 		// resp = client.start(512 - power * 4 - cool * 12 - life * 2, power, cool, life);
 	} else {
 		let power = 0;
-		let cool = 8;
-		let life = 100;
+		let cool = 4;
+		let life = 96;
 		resp = client.start(448 - power * 4 - cool * 12 - life * 2, power, cool, life);
 	}
 	dbg!(&resp);
 	while resp.stage != 2 {
 		let stime = get_time();
-		let mut ship = resp.state.ships[0].clone();
-		let mut size = 0;
-		for s in &resp.state.ships {
-			if s.role == resp.info.role && size.setmax(s.status.life) {
-				ship = s.clone();
-			}
-		}
-		let mut count = 0;
-		for s in &resp.state.ships {
-			if s.role == resp.info.role && s.status.life > 0 && s.pos == ship.pos {
-				count += 1;
+		let mut map = std::collections::BTreeMap::new();
+		for ship in &resp.state.ships {
+			if ship.role == resp.info.role {
+				map.entry(ship.pos).or_insert(vec![]).push(ship.clone());
 			}
 		}
 		let mut commands = vec![];
-		if ship.status.life > 1 && ship.status.energy > 1 && count == 1 && !check_range(ship.pos.0, ship.pos.1) && !check_v(ship.v.0, ship.v.1) {
-			let i = (ship.pos.0 + W) as usize;
-			let j = (ship.pos.1 + W) as usize;
-			let di = (ship.v.0 + 10) as usize;
-			let dj = (ship.v.1 + 10) as usize;
-			if prep.dp[i][j][di][dj] + resp.state.tick > resp.info.deadline {
-				commands.push(Command::Split(ship.id, Params { energy: 0, power: 0, cool: 0, life: 1 }));
-				eprintln!("split!!!!!!!!!!!!!!!!!!!");
+		for (_, ships) in map {
+			let ship = ships.iter().max_by_key(|s| (s.status.life, s.status.energy)).unwrap();
+			if ship.status.life > 1 && ships.len() == 1 && !check_range(ship.pos.0, ship.pos.1) && !check_v(ship.v.0, ship.v.1) {
+				let i = (ship.pos.0 + W) as usize;
+				let j = (ship.pos.1 + W) as usize;
+				let di = (ship.v.0 + 10) as usize;
+				let dj = (ship.v.1 + 10) as usize;
+				if prep.dp[i][j][di][dj] + resp.state.tick > resp.info.deadline {
+					let params = if ship.status.life < 4 {
+						Params { energy: 0, power: 0, cool: 0, life: 1 }
+					} else {
+						Params { energy: ship.status.energy / 2, power: ship.status.power / 2, cool: ship.status.cool / 2, life: ship.status.life / 2 }
+					};
+					commands.push(Command::Split(ship.id, params));
+					eprintln!("split!!!!!!!!!!!!!!!!!!!");
+					continue;
+				}
+			}
+			if ship.status.energy > 0 && (ships.len() > 1 || !on_orbit(ship.pos.0, ship.pos.1, ship.v.0, ship.v.1, resp.info.deadline - resp.state.tick, &prep)) {
+				let (dx, dy) = next_move(ship.pos.0, ship.pos.1, ship.v.0, ship.v.1, ships.len() > 1, resp.state.tick, &prep);
+				if (dx != 0 || dy != 0) && ship.status.energy >= dx.abs().max(dy.abs()) {
+					commands.push(Command::Accelerate(ship.id, (-dx, -dy)));
+				}
 			}
 		}
-		if commands.len() == 0 {
-			let (dx, dy) = next_move(ship.pos.0, ship.pos.1, ship.v.0, ship.v.1, count > 1, resp.state.tick, &prep);
-			if dx != 0 || dy != 0 {
-				commands.push(Command::Accelerate(ship.id, (-dx, -dy)));
-			}
-		}
+		
 		eprintln!("time = {:.3}", get_time() - stime);
 		resp = client.command(&commands);
 		dbg!(&resp);
