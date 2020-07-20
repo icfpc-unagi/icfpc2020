@@ -377,42 +377,45 @@ pub fn run() {
 		let stime = get_time();
 		let mut map = std::collections::BTreeMap::new();
 		let mut commands = vec![];
-		for ship in &resp.state.ships {
-			if ship.role == resp.info.role {
-				map.entry((ship.pos, ship.v)).or_insert(vec![]).push(ship.clone());
-			}
-		}
 		let mut killed = std::collections::BTreeSet::new();
-		if resp.info.role == 0 {
-			for ship in &resp.state.ships {
-				if ship.role == resp.info.role && ship.status.power == 0 && ship.status.life <= 2 {
-					let x = ship.pos.0;
-					let y = ship.pos.1;
-					let dx = ship.v.0;
-					let dy = ship.v.1;
-					let (gx, gy) = get_g(x, y);
-					let x = x + dx + gx;
-					let y = y + dy + gy;
-					let mut bomb = false;
-					for ship2 in &resp.state.ships {
-						if ship2.role != resp.info.role && killed.contains(&ship2.id) {
-							let x2 = ship2.pos.0;
-							let y2 = ship2.pos.1;
-							let dx2 = ship2.v.0;
-							let dy2 = ship2.v.1;
-							let (gx2, gy2) = get_g(x2, y2);
-							let x2 = x2 + dx2 + gx2;
-							let y2 = y2 + dy2 + gy2;
-							if (x - x2).abs().max((y - y2).abs()) <= 2 {
-								killed.insert(ship2.id);
-								bomb = true;
-							}
+		for ship in &resp.state.ships {
+			if ship.role == resp.info.role && ship.status.power == 0 && ship.status.life <= 2 {
+				let x = ship.pos.0;
+				let y = ship.pos.1;
+				let dx = ship.v.0;
+				let dy = ship.v.1;
+				let (gx, gy) = get_g(x, y);
+				let x = x + dx + gx;
+				let y = y + dy + gy;
+				let mut bomb = false;
+				for ship2 in &resp.state.ships {
+					if ship2.role != resp.info.role && !killed.contains(&ship2.id) {
+						if resp.info.role == 1 && ship2.status.energy < 5 {
+							continue;
+						}
+						let x2 = ship2.pos.0;
+						let y2 = ship2.pos.1;
+						let dx2 = ship2.v.0;
+						let dy2 = ship2.v.1;
+						let (gx2, gy2) = get_g(x2, y2);
+						let x2 = x2 + dx2 + gx2;
+						let y2 = y2 + dy2 + gy2;
+						if (x - x2).abs().max((y - y2).abs()) <= 3 {
+							killed.insert(ship2.id);
+							bomb = true;
 						}
 					}
-					if bomb {
-						
-					}
 				}
+				if bomb {
+					eprintln!("BOMB!!!!!!!!!!!!!!!!!!: {:?}", ship);
+					killed.insert(ship.id);
+					commands.push(Command::Detonate(ship.id, None));
+				}
+			}
+		}
+		for ship in &resp.state.ships {
+			if ship.role == resp.info.role && !killed.contains(&ship.id) {
+				map.entry((ship.pos, ship.v)).or_insert(vec![]).push(ship.clone());
 			}
 		}
 		let mut new_ships = vec![];
