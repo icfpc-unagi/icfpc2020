@@ -21,6 +21,13 @@ fn run() {
 	println!("!!!TOTSUGEKI!!!!");
 	let mut router = app::routing::Router::new();
 
+	//dbg!(&app::routing::PosVel::new(-17, 7, 2, 4).is_in_valid_area());
+
+	// dbg!(&router.get_next_move(-48, -23, 0, 0, 48, 23));  // cowday最初のターン
+	// dbg!(&router.get_next_move(-19, 3, 3, 6, 9, 17));  // cowday死ぬ直前 - 1
+	// return;
+	// dbg!(&router.get_next_move(-17, 7, 2, 4, 4, 17));  // cowday死ぬ直前
+
 	/*
 	dbg!(&router.get_next_move(1, 35, 0, 0, -100, -100));
 	return;

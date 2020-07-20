@@ -2,8 +2,8 @@
 # 例:
 #     AI_NAME=app
 #    AI_NAME=chokudAI
-# AI_NAME=app_totsugeki
-AI_NAME=wata
+AI_NAME=app_totsugeki
+# AI_NAME=wata
 
 # AI に追加で渡したいフラグを入れてください
 # 例:
