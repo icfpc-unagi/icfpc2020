@@ -50,8 +50,10 @@ fn run() {
 		let shoot_now = myship.heat -myship.status.cool + 16 <= myship.max_heat;
 		if shoot_now {
 			let fix = resp.info.role;
-			dx = rng.gen_range(0, 20) + fix;
-			dy = rng.gen_range(0, 20) + fix;
+			// dx = rng.gen_range(0, 20) + fix;
+			dx = rng.gen_range(32, 96) + fix;
+			// dy = rng.gen_range(0, 20) + fix;
+			dy = 0;
 			let shoot_power = power;
 			commands.push(Command::Shoot(1, (myship.pos.0 + dx, myship.pos.1 + dy), shoot_power, None));
 		}
