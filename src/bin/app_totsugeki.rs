@@ -12,7 +12,11 @@ fn clip_int(x: i32, limit: i32) -> i32 {
 }
 
 fn clip_pos(x: i32) -> i32 {
-	x.signum() * x.abs().min(SIZE_OUTER - 1)
+	clip_int(x, SIZE_OUTER - 1)
+}
+
+fn clip_vel(x: i32) -> i32 {
+	clip_int(x, MAX_V - 1)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,22 +140,32 @@ impl Ord for BinaryHeapState {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct Router {
-	mem: Vec<Vec<Vec<Vec<(i32, PosVel)>>>>,
+	mem: Vec<Vec<Vec<Vec<(usize, (i32, PosVel))>>>>,
+	uninitialized: (i32, PosVel),
+	ver: usize,
 }
 
 impl Router {
 	fn new() -> Self {
+		let uninitialized = (i32::MAX, PosVel::new_empty());
 		Self {
-			mem: vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			mem: vec![vec![vec![vec![(usize::MAX, uninitialized); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			ver: 0,
+			uninitialized,
 		}
 	}
 
 	fn get(&self, s: &PosVel) -> &(i32, PosVel) {
-		&self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize]
+		let m = &self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize];
+		if m.0 == self.ver {
+			&m.1
+		} else {
+			&self.uninitialized
+		}
 	}
 
 	fn set(&mut self, s: &PosVel, value: (i32, PosVel)) {
-		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = value;
+		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = (self.ver, value);
 	}
 
 	/// 次にするべき加速を返す
@@ -160,8 +174,14 @@ impl Router {
 	/// TODO: a starにする
 	/// TODO: 早くなったらvelocity上限あげたい
 	fn get_next_move(&mut self, sx: i32, sy: i32, vx: i32, vy: i32, tx: i32, ty: i32) -> ((i32, i32), i32) {
-		// TODO: これ消したい
-		self.mem = vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize];
+		// できればこれが起こるべきではない（外側でこういうパターンに対してケアされているべき）がout of boundsで死ぬよりよい
+		let sx = clip_pos(sx);
+		let sy = clip_pos(sy);
+		let vx = clip_int(vx, MAX_V);
+		let vy = clip_int(vy, MAX_V);
+
+		// self.mem = vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize];
+		self.ver += 1;  // これが事実上の配列クリアや！
 
 		let mut que = std::collections::BinaryHeap::new();
 		let pv = PosVel::new(sx, sy, vx, vy);
@@ -206,7 +226,7 @@ impl Router {
 			last_posvel = self.get(&last_posvel).1;
 		}
 		posvels.reverse();
-		dbg!(&posvels);
+		// dbg!(&posvels);
 
 		let dvx;
 		let dvy;
@@ -278,16 +298,20 @@ fn run() {
 		let my_ship = get_ship(&resp, my_id);
 		let en_ship = get_ship(&resp, en_id);
 
-		dbg!(my_ship);
-		dbg!(en_ship);
+		println!("TICK = {}, DISTANCE {}", resp.state.tick, (PosVel::from(my_ship).hypot_to(en_ship.pos.0, en_ship.pos.1) as f64).sqrt());
+
+		// dbg!(my_ship);
+		// dbg!(en_ship);
 
 		let tx = clip_pos(en_ship.pos.0);
 		let ty = clip_pos(en_ship.pos.1);
 		let (_, n_steps) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tx, ty);
 
-		let tx = clip_pos(en_ship.pos.0 + n_steps * en_ship.v.0);
-		let ty = clip_pos(en_ship.pos.1 + n_steps * en_ship.v.1);
-		let ((dvx, dvy), _) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tx, ty);
+		let mut tpv = PosVel::from(en_ship);
+		for _ in 0..n_steps {
+			tpv = tpv.apply_gravity().accelerate_and_move(0, 0);
+		}
+		let ((dvx, dvy), _) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tpv.x, tpv.y);
 		let mut commands = vec![Command::Accelerate(my_id, (-dvx, -dvy))];
 
 		// 次ステップのポジで重なるなら爆発！
@@ -295,10 +319,10 @@ fn run() {
 		let enp = PosVel::from(en_ship).apply_gravity().accelerate_and_move(0, 0);
 		if myp.x == enp.x && myp.y == enp.y {
 			eprintln!("{}", "BOMB!!!!!!!!".repeat(10));
-			commands.push(Command::Detonate(my_id));
+			commands.push(Command::Detonate(my_id, None));
 		}
 
-		dbg!((dvx, dvy));
+		// dbg!((dvx, dvy));
 		resp = client.command(&commands);
 	}
 }
