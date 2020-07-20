@@ -150,19 +150,13 @@ impl PosVel {
                 let mut pv = self.clone();
                 for _ in 0..n_simulated_iters {
                     pv = pv.apply_gravity().accelerate_and_move(dvx, dvy);
-                    if !pv.is_in_invalid_area_sub() {
-                        ok |= false;
-                        break;
-                    }
+                    ok &= pv.is_in_invalid_area_sub();
                 }
                 any_ok |= ok;
-                if any_ok {
-                    break;
-                }
             }
-            if any_ok {
-                break;
-            }
+        }
+        if !any_ok {
+            return false;
         }
 
         true
@@ -340,7 +334,8 @@ impl Router {
         // dbg!(&posvels);
 
         if posvels.len() == 0 {
-            panic!("weoifjpaoweifjpawoeijf {:?}", (sx, sy, vx, vy, tx, ty));
+            eprintln!("WARNING: no valid next move...");
+            // panic!("weoifjpaoweifjpawoeijf {:?}", (sx, sy, vx, vy, tx, ty));
         }
 
         let dvx;

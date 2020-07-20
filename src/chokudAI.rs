@@ -26,16 +26,12 @@ pub fn run_chokudai() {
 	// run(client, join_resp);
 }
 
-pub fn run(client: Client, join_resp: Response, prep: Preprocess){
-
-
-	let mut router = super::routing::Router::new();
-
-	let mut all = 448;
+pub fn run(client: Client, join_resp: Response, mut prep: Preprocess){
+	let all = join_resp.info.ability.potential;
 	let shoot = 64;
 	let mut heal = 10;
 	let life = 1;
-	if join_resp.info.role == 0 { all = 512; heal = 16;}
+	if join_resp.info.role == 0 { heal = 16;}
 	let energy = all - shoot * 4 - heal * 12 - life * 2;
 	
 	let mut resp = client.start(energy, shoot, heal, life);
@@ -51,8 +47,7 @@ pub fn run(client: Client, join_resp: Response, prep: Preprocess){
 
 	//COMMANDS
 	while resp.stage != 2 {
-
-		resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data, &prep, &mut router));
+		resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data, &mut prep));
 		//dbg!(&resp);
 	}
 }
@@ -62,7 +57,7 @@ fn dist(a: &Ship, b: &Ship) -> i32{
 	return (a.pos.0 - b.pos.0).abs() + (a.pos.1 - b.pos.1).abs(); 
 }
 
-fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, prep: &Preprocess, router: &mut super::routing::Router) -> Vec<Command> {
+fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, prep: &mut Preprocess) -> Vec<Command> {
 	
 	let mut myship = resp.state.ships[0].clone();
 	let mut enemyship = resp.state.ships[0].clone();
@@ -156,7 +151,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 
 	if e_data.go_near {
 		eprintln!("Go Near!");
-		let (dvx, dvy) = router.doit(&myship, &enemyship);
+		let (dvx, dvy) = prep.router.doit(&myship, &enemyship);
 		addx = dvx;
 		addy = dvy;
 	}

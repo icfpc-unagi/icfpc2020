@@ -21,6 +21,13 @@ fn run() {
 	println!("!!!TOTSUGEKI!!!!");
 	let mut router = app::routing::Router::new();
 
+	//dbg!(&app::routing::PosVel::new(-17, 7, 2, 4).is_in_valid_area());
+
+	// dbg!(&router.get_next_move(-48, -23, 0, 0, 48, 23));  // cowday最初のターン
+	// dbg!(&router.get_next_move(-19, 3, 3, 6, 9, 17));  // cowday死ぬ直前 - 1
+	// return;
+	// dbg!(&router.get_next_move(-17, 7, 2, 4, 4, 17));  // cowday死ぬ直前
+
 	/*
 	dbg!(&router.get_next_move(1, 35, 0, 0, -100, -100));
 	return;
@@ -38,11 +45,11 @@ fn run() {
 	}
 	let player_key = std::env::args().nth(2).unwrap();
 
-	client.join(&player_key);
+  let resp = client.join(&player_key);
 
 	// TODO: sideによってトータル変える
 	let cool = 16;
-	let mut resp = client.start(448 - cool * 12 - 1 * 2, 0, cool, 1);
+	let mut resp = client.start(resp.info.ability.potential - cool * 12 - 1 * 2, 0, cool, 1);
 
 	let my_id = resp.state.ships.iter().find_map(|s| if s.role == resp.info.role { Some(s.id) } else { None }).unwrap();
 	let en_id = 1 - my_id;  // TODO: 分裂したらやばい・・・・・・しらない・・・・・・
