@@ -4,7 +4,7 @@ use app::client::*;
 
 const SIZE_OUTER: i32 = 128;
 const SIZE_INNER: i32 = 16;
-const MAX_V: i32 = 8;
+const MAX_V: i32 = 16;
 const STEP_LIMIT: i32 = 5;
 
 fn clip_int(x: i32, limit: i32) -> i32 {
@@ -12,7 +12,11 @@ fn clip_int(x: i32, limit: i32) -> i32 {
 }
 
 fn clip_pos(x: i32) -> i32 {
-	x.signum() * x.abs().min(SIZE_OUTER - 1)
+	clip_int(x, SIZE_OUTER - 1)
+}
+
+fn clip_vel(x: i32) -> i32 {
+	clip_int(x, MAX_V - 1)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,22 +140,32 @@ impl Ord for BinaryHeapState {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct Router {
-	mem: Vec<Vec<Vec<Vec<(i32, PosVel)>>>>,
+	mem: Vec<Vec<Vec<Vec<(usize, (i32, PosVel))>>>>,
+	uninitialized: (i32, PosVel),
+	ver: usize,
 }
 
 impl Router {
 	fn new() -> Self {
+		let uninitialized = (i32::MAX, PosVel::new_empty());
 		Self {
-			mem: vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			mem: vec![vec![vec![vec![(usize::MAX, uninitialized); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize],
+			ver: 0,
+			uninitialized,
 		}
 	}
 
 	fn get(&self, s: &PosVel) -> &(i32, PosVel) {
-		&self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize]
+		let m = &self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize];
+		if m.0 == self.ver {
+			&m.1
+		} else {
+			&self.uninitialized
+		}
 	}
 
 	fn set(&mut self, s: &PosVel, value: (i32, PosVel)) {
-		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = value;
+		self.mem[(s.vy + MAX_V) as usize][(s.vx + MAX_V) as usize][(s.y + SIZE_OUTER) as usize][(s.x + SIZE_OUTER) as usize] = (self.ver, value);
 	}
 
 	/// 次にするべき加速を返す
@@ -160,8 +174,14 @@ impl Router {
 	/// TODO: a starにする
 	/// TODO: 早くなったらvelocity上限あげたい
 	fn get_next_move(&mut self, sx: i32, sy: i32, vx: i32, vy: i32, tx: i32, ty: i32) -> ((i32, i32), i32) {
-		// TODO: これ消したい
-		self.mem = vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize];
+		// できればこれが起こるべきではない（外側でこういうパターンに対してケアされているべき）がout of boundsで死ぬよりよい
+		let sx = clip_pos(sx);
+		let sy = clip_pos(sy);
+		let vx = clip_int(vx, MAX_V);
+		let vy = clip_int(vy, MAX_V);
+
+		// self.mem = vec![vec![vec![vec![(i32::MAX, PosVel::new_empty()); (SIZE_OUTER * 2) as usize]; (SIZE_OUTER * 2) as usize]; (MAX_V * 2) as usize]; (MAX_V * 2) as usize];
+		self.ver += 1;  // これが事実上の配列クリアや！
 
 		let mut que = std::collections::BinaryHeap::new();
 		let pv = PosVel::new(sx, sy, vx, vy);
