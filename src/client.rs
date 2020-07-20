@@ -241,7 +241,7 @@ pub fn parse(e: E) -> Response {
 			.unwrap()
 			.into_iter()
 			.map(|e| get_num(&e))
-			.collect();
+			.collect::<Vec<i32>>();
 		let strange = strange[0]..strange[1];
 		let ships = get_list(&state[2])
 			.unwrap()
@@ -304,7 +304,7 @@ pub fn parse(e: E) -> Response {
 			.collect();
 		(tick, strange, ships)
 	} else {
-		(0, .., vec![])
+		(0, 0..0, vec![])
 	};
 	Response {
 		stage,
