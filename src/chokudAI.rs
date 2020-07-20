@@ -53,6 +53,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	
 	let mut myship = resp.state.ships[0].clone();
 	let mut enemyship = resp.state.ships[0].clone();
+	let mut enemyshipflag = false;
 
 	let mut px = 0;
 	let mut py = 0;
@@ -60,8 +61,9 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	for i in 0..resp.state.ships.len() {
 		let nowship = resp.state.ships[i].clone();
 		if nowship.role == *my_role {myship = nowship; }
-		else {
+		else if !enemyshipflag || enemyship.status.energy < nowship.status.energy {
 			enemyship = nowship;
+			enemyshipflag = true;
 			for c in enemyship.commands.iter(){
 				if let Command::Accelerate(_, v) = c {
 					px = -v.0;
