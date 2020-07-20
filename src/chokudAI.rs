@@ -211,7 +211,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 	let mut ret = vec![];
 
 	if shoot_flag{
-		ret.push(Command::Shoot(*id, (shooty, shootx), 64));
+		ret.push(Command::Shoot(*id, (shooty, shootx), 64, None));
 	}
 
 	if accelerate_flag {

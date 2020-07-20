@@ -319,7 +319,7 @@ fn run() {
 		let enp = PosVel::from(en_ship).apply_gravity().accelerate_and_move(0, 0);
 		if myp.x == enp.x && myp.y == enp.y {
 			eprintln!("{}", "BOMB!!!!!!!!".repeat(10));
-			commands.push(Command::Detonate(my_id));
+			commands.push(Command::Detonate(my_id, None));
 		}
 
 		// dbg!((dvx, dvy));
