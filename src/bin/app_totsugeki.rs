@@ -45,11 +45,11 @@ fn run() {
 	}
 	let player_key = std::env::args().nth(2).unwrap();
 
-	client.join(&player_key);
+  let resp = client.join(&player_key);
 
 	// TODO: sideによってトータル変える
 	let cool = 16;
-	let mut resp = client.start(448 - cool * 12 - 1 * 2, 0, cool, 1);
+	let mut resp = client.start(resp.info.ability.potential - cool * 12 - 1 * 2, 0, cool, 1);
 
 	let my_id = resp.state.ships.iter().find_map(|s| if s.role == resp.info.role { Some(s.id) } else { None }).unwrap();
 	let en_id = 1 - my_id;  // TODO: 分裂したらやばい・・・・・・しらない・・・・・・

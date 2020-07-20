@@ -331,7 +331,7 @@ pub fn run() {
 		let power = 0;
 		let cool = 4;
 		let life = 96;
-		resp = client.start(448 - power * 4 - cool * 12 - life * 2, power, cool, life);
+		resp = client.start(resp.info.ability.potential - power * 4 - cool * 12 - life * 2, power, cool, life);
 	}
 	dbg!(&resp);
 	while resp.stage != 2 {

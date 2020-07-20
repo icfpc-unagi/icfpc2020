@@ -31,11 +31,11 @@ pub fn run(client: Client, join_resp: Response, prep: Preprocess){
 
 	let mut router = super::routing::Router::new();
 
-	let mut all = 448;
+	let all = join_resp.info.ability.potential;
 	let shoot = 64;
 	let mut heal = 10;
 	let life = 1;
-	if join_resp.info.role == 0 { all = 512; heal = 16;}
+	if join_resp.info.role == 0 { heal = 16;}
 	let energy = all - shoot * 4 - heal * 12 - life * 2;
 	
 	let mut resp = client.start(energy, shoot, heal, life);
