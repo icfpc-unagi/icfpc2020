@@ -1,8 +1,8 @@
 # AI の名前をちゃんと大文字小文字を間違えずに入れる
 # 例:
 #     AI_NAME=app
-#     AI_NAME=chokudAI
-AI_NAME=app_totsugeki
+     AI_NAME=chokudAI
+#	AI_NAME=app_totsugeki
 
 # AI に追加で渡したいフラグを入れてください
 # 例:
