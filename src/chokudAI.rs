@@ -26,10 +26,10 @@ pub fn run_chokudai() {
 
 pub fn run(client: Client, join_resp: Response){
 	let mut all = 448;
-	if join_resp.info.role == 0 { all = 512; }
 	let shoot = 64;
-	let heal = 16;
+	let mut heal = 10;
 	let life = 1;
+	if join_resp.info.role == 0 { all = 512; heal = 16;}
 	let energy = all - shoot * 4 - heal * 12 - life * 2;
 	
 	let mut resp = client.start(energy, shoot, heal, life);
