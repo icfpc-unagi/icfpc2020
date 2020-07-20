@@ -69,23 +69,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 					let ppx = 2 + px;
 					let ppy = 2 + py;
 
-					if enemyship.pos.0.abs() >= enemyship.pos.1.abs() {
-						if enemyship.pos.0 >= 0 {
-							e_data.pattern[ppx as usize][ppy as usize] += 1;
-						}
-						if enemyship.pos.0 <= 0 {
-							e_data.pattern[(4 - ppx) as usize][(4 - ppy) as usize] += 1;
-						}
-					}
-					else {
-						if enemyship.pos.1 >= 0 {
-							e_data.pattern[ppy as usize][(4 - ppx) as usize] += 1;
-						}
-						
-						if enemyship.pos.1 <= 0 {
-							e_data.pattern[(4 - ppy) as usize][ppx as usize] += 1;
-						}
-					}
+					e_data.pattern[ppx as usize][ppy as usize] += 1;
 				}
 			}
 		}
@@ -126,43 +110,10 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -
 				enemy_move_y = y as i32 - 2;
 			}
 		}
-	}
+	}	
 
-	if enemyship.pos.0.abs() >= enemyship.pos.1.abs(){
-		if enemyship.pos.0 >= 0 {
-			enemy_move_x = enemy_move_x;
-			enemy_move_y = enemy_move_y;
-		}
-		else{
-			enemy_move_x = -enemy_move_x;
-			enemy_move_y = -enemy_move_y;
-		}
-	}
-	else {
-		if enemyship.pos.1 >= 0 {
-			enemy_move_x = -enemy_move_y;
-			enemy_move_y = enemy_move_x;
-		}
-		else{
-			enemy_move_x = enemy_move_y;
-			enemy_move_y = -enemy_move_x;
-		}
-	}
-	
-
-
-	if enemyship.pos.0.abs() != enemyship.pos.1.abs() {
-		
-		next_enemy[0] += px;
-		next_enemy[1] += py;
-		//next_enemy[0] += enemy_move_x;
-		//next_enemy[1] += enemy_move_y;
-	}
-	else{
-		next_enemy[0] += px;
-		next_enemy[1] += py;
-	}
-
+	next_enemy[0] += enemy_move_x;
+	next_enemy[1] += enemy_move_y;
 
 	let mut addy = 0;
 	let mut addx = 0;
