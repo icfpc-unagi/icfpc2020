@@ -42,7 +42,7 @@ fn run(){
 	//COMMANDS
 	while resp.stage != 2 {
 
-		resp = client.command(&chokud_ai(&resp, &id, &my_role, &e_data));
+		resp = client.command(&chokud_ai(&resp, &id, &my_role, &mut e_data));
 		//dbg!(&resp);
 	}
 
@@ -50,17 +50,47 @@ fn run(){
 
 }
 
-fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &EnemyData) -> Vec<Command> {
+fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData) -> Vec<Command> {
 	
 	let mut myship = resp.state.ships[0].clone();
 	let mut enemyship = resp.state.ships[0].clone();
+
+	let mut px = 0;
+	let mut py = 0;
 
 	for i in 0..resp.state.ships.len() {
 		let nowship = resp.state.ships[i].clone();
 		if nowship.role == *my_role {myship = nowship; }
 		else {
 			enemyship = nowship;
-			
+			for c in enemyship.commands.iter(){
+				if let Command::Accelerate(_, v) = c {
+					px = -v.0;
+					py = -v.1;
+					let ppx = 2 + px;
+					let ppy = 2 + py;
+
+					if enemyship.pos.0.abs() >= enemyship.pos.1.abs() {
+						if enemyship.pos.0 >= 0 {
+							e_data.pattern[ppx as usize][ppy as usize] += 1;
+						}
+						
+						if enemyship.pos.0 <= 0 {
+							e_data.pattern[(4 - ppx) as usize][(4 - ppy) as usize] += 1;
+						}
+					}
+
+					if enemyship.pos.1.abs() >= enemyship.pos.0.abs() {
+						if enemyship.pos.1 >= 0 {
+							e_data.pattern[ppy as usize][(4 - ppx) as usize] += 1;
+						}
+						
+						if enemyship.pos.1 <= 0 {
+							e_data.pattern[(4 - ppy) as usize][ppx as usize] += 1;
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -84,20 +114,47 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &EnemyData) -> Ve
 			next_enemy[0] += 1;
 		}
 	}
+	
+	//next_enemy[0] += px;
+	//next_enemy[1] += py;	
 
-	let mut enemyMoveX = 0;
-	let mut enemyMoveY = 0;
-	let mut enemyCnt = 0;
+	let mut enemy_move_x = 0 as i32;
+	let mut enemy_move_y = 0 as i32;
+	let mut enemyCnt = 0 as i32;
+
 	for x in 0..5 {
 		for y in 0..5 {
 			if e_data.pattern[x][y] > enemyCnt {
 				enemyCnt = e_data.pattern[x][y];
-				enemyMoveX = x - 2;
-				enemyMoveY = y - 2;
+				enemy_move_x = x as i32 - 2;
+				enemy_move_y = y as i32 - 2;
 			}
 		}
 	}
+
+	if enemyship.pos.0.abs() <= enemyship.pos.1.abs(){
+		if enemyship.pos.1 >= 0 {
+			enemy_move_x = px;
+			enemy_move_y = py;
+		}
+		else{
+			enemy_move_x = -px;
+			enemy_move_y = -py;
+		}
+	}
+	else {
+		if enemyship.pos.0 >= 0 {
+			enemy_move_x = py;
+			enemy_move_y = -px;
+		}
+		else{
+			enemy_move_x = -py;
+			enemy_move_y = px;
+		}
+	}
 	
+	next_enemy[0] += enemy_move_x;
+	next_enemy[1] += enemy_move_y;
 
 	let mut addy = 0;
 	let mut addx = 0;
