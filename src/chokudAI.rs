@@ -178,9 +178,9 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 	if maxlen == 0 { maxlen = 1; minlen = 1;}
 
 	let attack = myship.status.power.min(myship.max_heat - myship.heat);
-	let impact = ((attack * 3 + 1) * (maxlen - 2 * minlen) / maxlen - maxlen).max(0);
+	let impact = ((attack * 3 + 1) * (maxlen - 2 * minlen).abs() / maxlen - maxlen).max(0);
 	let eattack = enemyship.status.power.min(enemyship.max_heat - enemyship.heat);
-	let eimpact = ((eattack * 3 + 1) * (maxlen - 2 * minlen) / maxlen - maxlen).max(0);
+	let eimpact = ((eattack * 3 + 1) * (maxlen - 2 * minlen).abs() / maxlen - maxlen).max(0);
 
 	if eimpact >= 40 {
 		if addx == 0 && addy == 0 {
