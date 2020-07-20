@@ -55,7 +55,8 @@ pub fn test_naive(mut x: i32, mut y: i32, mut dx: i32, mut dy: i32, gx: &Vec<Vec
 pub struct Preprocess {
 	gx: Vec<Vec<i32>>,
 	gy: Vec<Vec<i32>>,
-	dp: Vec<Vec<Vec<Vec<i32>>>>
+	dp: Vec<Vec<Vec<Vec<i32>>>>,
+	pub router: crate::routing::Router,
 }
 
 fn preprocess() -> Preprocess {
@@ -157,8 +158,10 @@ fn preprocess() -> Preprocess {
 		}
 	}
 	eprintln!("preprocessed: {}", count);
+
+	let router = crate::routing::Router::new();
 	eprintln!("time: {:.3}", get_time() - stime);
-	Preprocess { gx, gy, dp }
+	Preprocess { gx, gy, dp, router }
 }
 
 fn rec(x: i32, y: i32, dx: i32, dy: i32, last_ax: i32, last_ay: i32, d: usize, prep: &Preprocess) -> (i32, usize) {
