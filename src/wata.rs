@@ -148,7 +148,7 @@ fn preprocess() -> Preprocess {
 		for j in 0..n {
 			for di in 0..m {
 				for dj in 0..m {
-					if dp[i][j][di][dj] >= 256 {
+					if dp[i][j][di][dj] >= 384 {
 					// if test_naive(i as i32 - W, j as i32 - W, di as i32 - 10, dj as i32 - 10, &gx, &gy) >= 256 {
 						count += 1;
 					}
