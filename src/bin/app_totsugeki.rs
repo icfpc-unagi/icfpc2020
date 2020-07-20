@@ -19,6 +19,16 @@ fn clip_vel(x: i32) -> i32 {
 	clip_int(x, MAX_V - 1)
 }
 
+fn is_valid_1d(x: i32, v: i32) -> bool {
+	if v < 0 {
+		return is_valid_1d(-x, -v)
+	}
+
+	let t = v / 2;
+	let x1 = x + v * t - t * (t + 1);
+	x1 < SIZE_OUTER
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -105,6 +115,11 @@ impl PosVel {
 		if MAX_V <= self.vx.abs() || MAX_V <= self.vy.abs() {
 			return false;
 		}
+
+		if !is_valid_1d(self.x, self.vx) || !is_valid_1d(self.y, self.vy) {
+			return false;
+		}
+
 		true
 	}
 
@@ -348,7 +363,12 @@ fn run() {
 		let my_ship = get_ship(&resp, my_id);
 		let en_ship = get_ship(&resp, en_id);
 
-		println!("TICK = {}, DISTANCE {}", resp.state.tick, (PosVel::from(my_ship).hypot_to(en_ship.pos.0, en_ship.pos.1) as f64).sqrt());
+		println!(
+			"TICK = {}, DISTANCE {}, (({}, {}), ({}, {})) - (({}, {}), ({}, {}))",
+			resp.state.tick, (PosVel::from(my_ship).hypot_to(en_ship.pos.0, en_ship.pos.1) as f64).sqrt(),
+			my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1,
+			en_ship.pos.0, en_ship.pos.1, en_ship.v.0, en_ship.v.1,
+		);
 
 		// dbg!(my_ship);
 		// dbg!(en_ship);
@@ -361,6 +381,9 @@ fn run() {
 		for _ in 0..n_steps {
 			tpv = tpv.apply_gravity().accelerate_and_move(0, 0);
 		}
+		// これはギリギリはみ出さないテストをするとき用
+		// let tpv = PosVel::new(127, 127, 0, 0);
+		
 		let ((dvx, dvy), _) = router.get_next_move(my_ship.pos.0, my_ship.pos.1, my_ship.v.0, my_ship.v.1, tpv.x, tpv.y);
 		let mut commands = vec![Command::Accelerate(my_id, (-dvx, -dvy))];
 
