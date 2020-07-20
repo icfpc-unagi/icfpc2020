@@ -18,6 +18,8 @@ follow-redirects = "*"
 reqwest = { version = "*", features = ["blocking"] }
 structopt = "*"
 itertools = "*"
+colored = "*"
+crossbeam = "*"
 
 [profile.release]
 debug = true

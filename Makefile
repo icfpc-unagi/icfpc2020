@@ -29,6 +29,10 @@ submission-test: submission
 performance:
 	bash test/performance_test.sh
 
+.PHONY: ai-check
+ai-check:
+	bash test/ai_name_test.sh
+
 .PHONY: deploy-dashboard
 deploy-dashboard:
 	cd go/cmd/dashboard && unagi --bare make deploy

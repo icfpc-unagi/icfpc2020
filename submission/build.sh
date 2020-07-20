@@ -2,6 +2,8 @@
 
 set -eux
 
-cargo build --release --offline --bin=cui
-cp ./target/release/cui app
+source ./AI
+
+cargo build --release --offline --bin="${AI_NAME}"
+cp "./target/release/${AI_NAME}" app
 rm -rf ./target
