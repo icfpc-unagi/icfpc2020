@@ -162,7 +162,7 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 	}
 	else {
 		eprintln!("Loop!");
-		let r = to_orbit(myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, 200, prep);
+		let r = to_orbit(myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, 300, prep);
 		addx = r.0;
 		addy = r.1;
 	}
@@ -179,11 +179,12 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 
 	let maxlen = (next_me[0]-next_enemy[0]).abs().max( (next_me[1]-next_enemy[1]).abs());
 	let minlen = (next_me[0]-next_enemy[0]).abs().min( (next_me[1]-next_enemy[1]).abs());
+	let attack = myship.status.power.min(myship.max_heat - myship.heat);
+	let impact = ((attack * 3 + 1) * (maxlen - 2 * minlen) / maxlen - maxlen).max(0);
+	let eattack = enemyship.status.power.min(enemyship.max_heat - enemyship.heat);
+	let eimpact = ((eattack * 3 + 1) * (maxlen - 2 * minlen) / maxlen - maxlen).max(0);
 
-	let terrible_angle = (maxlen * 2 / 10 <= minlen) && (maxlen * 8 / 10 >= minlen);
-	let bad_angle = (maxlen * 1 / 10 <= minlen) && (maxlen * 9 / 10 >= minlen);
-
-	if !bad_angle || (!terrible_angle && minlen + maxlen <= 35) {
+	if eimpact >= 40 {
 		if addx == 0 && addy == 0 {
 			if minlen + maxlen <= 70 && enemyship.max_heat - enemyship.heat >= 30 && enemyship.status.power >= 30 && myship.status.energy >= 10 {
 				let num = thread_rng().gen_range(0, 4);
@@ -192,22 +193,23 @@ fn chokud_ai(resp: &Response, id: &i32, my_role: &i32, e_data: &mut EnemyData, p
 			}
 		}
 	}
-	else{
+	if impact < 64{
 		shoot_flag = false;
 	}
 
 	eprintln!("debug {} {} {} {} {} {} {}", myship.status.energy, myship.pos.0, myship.pos.1, myship.v.0, myship.v.1, addx, addy);
 
-
 	if addy != 0 || addx != 0 {accelerate_flag = true; }
 	let mut ret = vec![];
+	
+	if accelerate_flag {
+		ret.push(Command::Accelerate(*id, (-addx, -addy)));
+	}
 
 	if shoot_flag{
 		ret.push(Command::Shoot(*id, (shooty, shootx), 64, None));
 	}
 
-	if accelerate_flag {
-		ret.push(Command::Accelerate(*id, (-addx, -addy)));
-	}
+
 	return ret;
 }
