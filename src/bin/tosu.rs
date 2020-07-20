@@ -90,7 +90,7 @@ fn run() {
 					consumed = x.abs().max(y.abs()) * 8;
 				}
 			}
-			let damage = new_enship.heat - enship.heat; // excl. cool
+			let damage = enship.status.energy - new_enship.status.energy + new_enship.heat - enship.heat; // excl. cool
 			for cmd in &new_myship.commands {
 				if let Command::Detonate(_, Some((impact, thirtytwo))) = cmd {
 					println!(
